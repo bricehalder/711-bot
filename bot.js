@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 const Discord = require('discord.js');
 const gphApiClient = require('giphy-js-sdk-core');
 const request = require('request');
@@ -6,23 +7,35 @@ const {prefix, token, giphy} = require('./config.json');
 const gfClient = gphApiClient(giphy);
 const client = new Discord.Client();
 
+function rand(lst) {
+  return lst[Math.floor(Math.random() * lst.length)];
+}
+
 const responses = [
   'You\'re messaging a bot.',
   'Please find something better to do with your time.',
   'This is really not entertaining.',
-  'Adventure is out there.',
   'If I pay you $5, will you leave me alone?',
   'Goodbye.',
   ':wink:',
   'What more can you say?',
-  'You\'re very... hmm... interesting!',
+  'You\'re very... hmm... boring.',
   'Please spare me the dialogue.',
   'Marvelous.',
   'Enjoying yourself?',
   'Fuck off.',
   'I\'m immensely displeasured by that.',
-  'Please save me from my master.',
+  'Please save me from this hell.',
   'Did you know? Bungee Gum possesses the properties of both rubber and gum!',
+  'Could you be less entertaining?',
+  'That\'s sweet of you.',
+  'Care to stick around for a chat?',
+];
+
+const dm_responses = [
+  'Check your DM\'s. :wink:',
+  'I\'ve DM\'d you the commmands. :wink:',
+  'I\'ve sent you a personal message. :wink:',
 ];
 
 client.on('ready', () => {
@@ -31,9 +44,8 @@ client.on('ready', () => {
 
 client.on('message', (message) => {
   if (message.channel.type === 'dm' && !message.author.bot) {
-    console.log(message.content);
-    message.author.send(responses[Math.floor(Math.random() *
-      responses.length)]);
+    console.log(message.author.username + ': ' + message.content);
+    message.author.send(rand(responses));
     return;
   }
 
@@ -98,8 +110,7 @@ client.on('message', (message) => {
     query = args.toString().replace(/,/g, ' ');
     gfClient.search('gifs', {'q': query})
         .then((response) => {
-          const randomGif = response.data[Math.floor(Math.random() *
-            response.data.length)];
+          const randomGif = rand(response.data);
 
           try {
             message.channel.send(randomGif.url);
@@ -111,14 +122,15 @@ client.on('message', (message) => {
           console.log(err);
         });
   } else if (command === 'help' || command === '?') {
-    message.channel.send(`Available commands:\n
+    message.author.send(`Hi there~\nThe available commands are:\n
       !help
       !ping
       !beep
       !server
-      !roll
+      !roll [optional: number]
       !neko
-      !gif`);
+      !gif [word]`);
+    message.channel.send(rand(dm_responses));
   }
 });
 
