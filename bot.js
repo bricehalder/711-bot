@@ -1,8 +1,9 @@
-/* eslint-disable require-jsdoc */
 const Discord = require('discord.js');
 const Queue = require('./queue.js');
 const gphApiClient = require('giphy-js-sdk-core');
 const request = require('request');
+const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+const convert = require('xml-js');
 const {prefix, token, giphy} = require('./config.json');
 
 
@@ -71,6 +72,7 @@ client.on('message', (message) => {
   if (!message.content.startsWith(prefix) || message.author.bot) return;
 
   const args = message.content.slice(prefix.length).trim().split(/ +/);
+  const query = args.toString().replace(/,/g, ' ');
   const command = args.shift().toLowerCase();
 
   if (command === 'ping') {
@@ -110,7 +112,6 @@ client.on('message', (message) => {
       return;
     }
 
-    query = args.toString().replace(/,/g, ' ');
     gfClient.search('gifs', {'q': query})
         .then((response) => {
           try {
@@ -153,8 +154,30 @@ client.on('message', (message) => {
       !server
       !roll [optional: number]
       !neko
-      !gif [word]`);
+      !gif [word]
+      !hisoka [words]`);
     message.channel.send(rand(dmResponses));
+  } else if (command === 'ma' || command === 'im') {
+    message.channel.send('Ha! You fool! Did you mean $' + command + '?');
+  } else if (command === 'hisoka') {
+    const xhr = new XMLHttpRequest();
+    result = '';
+
+    xhr.open('POST', 'https://www.botlibre.com/rest/api/chat', true);
+
+    xhr.setRequestHeader('Content-Type', 'application/xml');
+
+    // eslint-disable-next-line max-len
+    const xml = '<chat application=\'1627452332476840447\' instance=\'20303513\'><message>' + query + '</message></chat>';
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        result = xhr.responseText;
+        const result1 = convert.xml2json(result, {compact: true, spaces: 4});
+        const convertedJSON = JSON.parse(result1);
+        message.channel.send(convertedJSON.response.message._text);
+      }
+    };
+    xhr.send(xml);
   }
 });
 
