@@ -1,11 +1,14 @@
 /* eslint-disable require-jsdoc */
 const Discord = require('discord.js');
+const Queue = require('./queue.js');
 const gphApiClient = require('giphy-js-sdk-core');
 const request = require('request');
 const {prefix, token, giphy} = require('./config.json');
 
+
 const gfClient = gphApiClient(giphy);
 const client = new Discord.Client();
+const gifQ = Queue.queue(3);
 
 function rand(lst) {
   return lst[Math.floor(Math.random() * lst.length)];
@@ -25,14 +28,14 @@ const responses = [
   'Enjoying yourself?',
   'Fuck off.',
   'I\'m immensely displeasured by that.',
-  'Please save me from this hell.',
+  'Please save me from this boredom.',
   'Did you know? Bungee Gum possesses the properties of both rubber and gum!',
   'Could you be less entertaining?',
   'That\'s sweet of you.',
   'Care to stick around for a chat?',
 ];
 
-const dm_responses = [
+const dmResponses = [
   'Check your DM\'s. :wink:',
   'I\'ve DM\'d you the commmands. :wink:',
   'I\'ve sent you a personal message. :wink:',
@@ -103,19 +106,40 @@ client.on('message', (message) => {
     });
   } else if (command === 'gif') {
     if (args.length === 0) {
-      message.channel.send('Usage: !gif [word]');
+      message.channel.send('Usage: !gif [word(s)]');
       return;
     }
 
     query = args.toString().replace(/,/g, ' ');
     gfClient.search('gifs', {'q': query})
         .then((response) => {
-          const randomGif = rand(response.data);
-
           try {
-            message.channel.send(randomGif.url);
+            success = false;
+            tries = 0;
+            responseSize = response.data.length;
+            while (!success && tries < responseSize) {
+              tries += 1;
+
+              randIdx = Math.floor(Math.random() * response.data.length);
+              const randomGif = response.data[randIdx];
+
+              if (Queue.contains(gifQ, randomGif.url)) {
+                response.data.splice(randIdx, 1);
+                continue;
+              }
+
+              Queue.append(gifQ, randomGif.url);
+              message.channel.send(randomGif.url);
+              success = true;
+            }
+
+            if (!success) {
+              message.channel.send('No new gifs found for ' + query + ' :(');
+            }
           } catch (err) {
-            message.channel.send('No gifs found for ' + query + ' :(');
+            const currentDate = '[' + new Date().toUTCString() + '] ';
+            console.log(currentDate + err);
+            message.channel.send('Error with giphycat wtf');
           }
         })
         .catch((err) => {
@@ -130,7 +154,7 @@ client.on('message', (message) => {
       !roll [optional: number]
       !neko
       !gif [word]`);
-    message.channel.send(rand(dm_responses));
+    message.channel.send(rand(dmResponses));
   }
 });
 
