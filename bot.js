@@ -72,8 +72,8 @@ client.on('message', (message) => {
   if (!message.content.startsWith(prefix) || message.author.bot) return;
 
   const args = message.content.slice(prefix.length).trim().split(/ +/);
-  const query = args.toString().replace(/,/g, ' ');
   const command = args.shift().toLowerCase();
+  const query = args.toString().replace(/,/g, ' ');
 
   if (command === 'ping') {
     message.channel.send('Pong.');
@@ -102,6 +102,15 @@ client.on('message', (message) => {
     }, function(error, response, body) {
       if (!error && response.statusCode == 200) {
         message.channel.send(response.request.uri.href);
+      } else {
+        console.log(error);
+      }
+    });
+  } else if (command === 'dog') {
+    request.get('https://dog.ceo/api/breeds/image/random', {
+    }, function(error, response, body) {
+      if (!error && response.statusCode == 200) {
+        message.channel.send(JSON.parse(response.body).message);
       } else {
         console.log(error);
       }
@@ -153,6 +162,7 @@ client.on('message', (message) => {
       !beep
       !server
       !roll [optional: number]
+      !dog
       !neko
       !gif [word]
       !hisoka [words]`);
@@ -168,7 +178,7 @@ client.on('message', (message) => {
     xhr.setRequestHeader('Content-Type', 'application/xml');
 
     // eslint-disable-next-line max-len
-    const xml = '<chat application=\'1627452332476840447\' instance=\'20303513\'><message>' + query + '</message></chat>';
+    const xml = '<chat application=\'1627452332476840447\' instance=\'165\'><message>' + query + '</message></chat>';
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4 && xhr.status === 200) {
         result = xhr.responseText;
