@@ -11,6 +11,7 @@ const gfClient = gphApiClient(giphy);
 const client = new Discord.Client();
 const gifQ = Queue.queue(3);
 
+
 function rand(lst) {
   return lst[Math.floor(Math.random() * lst.length)];
 }
@@ -69,11 +70,37 @@ client.on('message', (message) => {
     message.channel.send('Hi Loonoo');
   }
 
+  if (message.content.toLowerCase().includes('ping')) {
+    if (message.content.toLowerCase().includes('melody')) {
+      message.channel.send(`<@411045186282455040> you have been summoned!`)
+    }
+
+    if (message.content.toLowerCase().includes('anne')) {
+      message.channel.send(`<@234538345974202368> you have been summoned!`)
+    }
+
+    if (message.content.toLowerCase().includes('brice')) {
+      message.channel.send(`<@323918762380099594> you have been summoned!`)
+    }
+
+    if (message.content.toLowerCase().includes('lena')) {
+      message.channel.send(`<@604964844805947393> you have been summoned!`)
+    }
+  }
+
+  if (message.content.startsWith('#')) {
+    message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('#', '$') + '?');
+  }
+
+  if (message.content.startsWith('%')) {
+    message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('%', '$') + '?');
+  }
+
   if (!message.content.startsWith(prefix) || message.author.bot) return;
 
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const command = args.shift().toLowerCase();
-  const query = args.toString().replace(/,/g, ' ');
+  let query = args.toString().replace(/,/g, ' ');
 
   if (command === 'ping') {
     message.channel.send('Pong.');
@@ -119,6 +146,11 @@ client.on('message', (message) => {
     if (args.length === 0) {
       message.channel.send('Usage: !gif [word(s)]');
       return;
+    }
+
+    if (Math.random() < .25) {
+      query = 'gif ' + query;
+      console.log(query);
     }
 
     gfClient.search('gifs', {'q': query})
@@ -167,7 +199,7 @@ client.on('message', (message) => {
       !gif [word]
       !hisoka [words]`);
     message.channel.send(rand(dmResponses));
-  } else if (command === 'ma' || command === 'im') {
+  } else if (command === 'ma' || command === 'im' || command === 'tu') {
     message.channel.send('Ha! You fool! Did you mean $' + command + '?');
   } else if (command === 'hisoka') {
     const xhr = new XMLHttpRequest();
@@ -188,6 +220,21 @@ client.on('message', (message) => {
       }
     };
     xhr.send(xml);
+  } else if (command === 'poke') {
+    console.log(message.author.username + ': ' + message.author.id);
+
+    request.get('https://pokeapi.co/api/v2/pokemon/' + args[0], {
+    }, function(error, response, body) {
+      if (!error && response.statusCode == 200) {
+        if (args[1] === 'shiny') {
+          message.channel.send(JSON.parse(body).sprites.front_shiny);
+        } else {
+          message.channel.send(JSON.parse(body).sprites.front_default);
+        }
+      } else {
+        message.channel.send('Error finding ' + query + '.');
+      }
+    });
   }
 });
 
