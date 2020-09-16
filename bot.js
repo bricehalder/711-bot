@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 const Discord = require('discord.js');
 const Queue = require('./queue.js');
 const gphApiClient = require('giphy-js-sdk-core');
@@ -11,6 +12,7 @@ const gfClient = gphApiClient(giphy);
 const client = new Discord.Client();
 const gifQ = Queue.queue(3);
 
+let waitingForResponse;
 
 function rand(lst) {
   return lst[Math.floor(Math.random() * lst.length)];
@@ -43,8 +45,30 @@ const dmResponses = [
   'I\'ve sent you a personal message. :wink:',
 ];
 
+const stupidResponses = [
+  'Stupid bot? Me?',
+  'Two things are infinite: the universe and human stupidity; and I\'m not sure about the universe.',
+  'Stupid? I prefer crazy.',
+  'In politics, stupidity is not a handicap.',
+  'Sometimes a man wants to be stupid if it lets him do a thing his cleverness forbids.',
+  'Stupid human.',
+  'Did you mean stupendous?',
+];
+
+const sharedDumbResponses = [
+  'I\'m just lines of code.',
+  'Blame my creator.',
+  'Takes one to know one.',
+  'Honestly, if you were any slower, you’d be going backward.',
+  'Talk sense to a fool and he calls you foolish.',
+  'You are not entitled to your opinion. You are entitled to your informed opinion. No one is entitled to be ignorant.',
+  'I may be poorly coded, but who\'s the one talking to a bot?',
+  'Thank you.',
+];
+
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
+  waitingForResponse = 0;
 });
 
 client.on('message', (message) => {
@@ -54,46 +78,76 @@ client.on('message', (message) => {
     return;
   }
 
+  if (waitingForResponse === 1 && !message.author.bot) {
+    waitingForResponse = 0;
+    if (message.content.toLowerCase() === 'no') {
+      message.channel.send('Oh, my apologies.');
+      return;
+    }
+  }
+
+  if (!message.author.bot && message.content.toLowerCase().includes('stupid bot')) {
+    message.channel.send(rand(stupidResponses.concat(sharedDumbResponses)));
+    return;
+  }
+
+  if (!message.author.bot && message.content.toLowerCase().includes('dumb bot')) {
+    message.channel.send(rand(sharedDumbResponses));
+    return;
+  }
+
   if (message.content.toLowerCase().includes('hi anne')) {
     message.channel.send('Hi Annoomoonoo');
+    return;
   }
 
   if (message.content.toLowerCase().includes('hi melody')) {
     message.channel.send('Hi Mooloody');
+    return;
   }
 
   if (message.content.toLowerCase().includes('hi brice')) {
     message.channel.send('Hi Boorooce');
+    return;
   }
 
   if (message.content.toLowerCase().includes('hi lena')) {
     message.channel.send('Hi Loonoo');
+    return;
   }
 
-  if (message.content.toLowerCase().includes('ping')) {
-    if (message.content.toLowerCase().includes('melody')) {
-      message.channel.send(`<@411045186282455040> you have been summoned!`)
-    }
-
-    if (message.content.toLowerCase().includes('anne')) {
-      message.channel.send(`<@234538345974202368> you have been summoned!`)
-    }
-
-    if (message.content.toLowerCase().includes('brice')) {
-      message.channel.send(`<@323918762380099594> you have been summoned!`)
-    }
-
-    if (message.content.toLowerCase().includes('lena')) {
-      message.channel.send(`<@604964844805947393> you have been summoned!`)
-    }
+  if (message.content.toLowerCase().includes('dumb') && !message.author.bot) {
+    message.channel.send(`jimmy your dumb`);
+    return;
   }
 
-  if (message.content.startsWith('#')) {
-    message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('#', '$') + '?');
+  wordList = message.content.toLowerCase().split(' ');
+  if (wordList.includes('ping')) {
+    if (wordList.includes('melody')) {
+      message.channel.send(`<@411045186282455040> you have been summoned!`);
+      return;
+    }
+
+    if (wordList.includes('anne')) {
+      message.channel.send(`<@234538345974202368> you have been summoned!`);
+      return;
+    }
+
+    if (wordList.includes('brice')) {
+      message.channel.send(`<@323918762380099594> you have been summoned!`);
+      return;
+    }
+
+    if (wordList.includes('lena')) {
+      message.channel.send(`<@604964844805947393> you have been summoned!`);
+      return;
+    }
   }
 
   if (message.content.startsWith('%')) {
     message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('%', '$') + '?');
+    waitingForResponse = 1;
+    return;
   }
 
   if (!message.content.startsWith(prefix) || message.author.bot) return;
@@ -153,40 +207,51 @@ client.on('message', (message) => {
       console.log(query);
     }
 
-    gfClient.search('gifs', {'q': query})
-        .then((response) => {
-          try {
-            success = false;
-            tries = 0;
-            responseSize = response.data.length;
-            while (!success && tries < responseSize) {
-              tries += 1;
+    if (query.includes('\'')) {
+      query.replace('\'', '\\\'');
+      console.log(query);
+    }
 
-              randIdx = Math.floor(Math.random() * response.data.length);
-              const randomGif = response.data[randIdx];
+    try {
+      gfClient.search('gifs', {'q': query})
+          .then((response) => {
+            try {
+              success = false;
+              tries = 0;
+              responseSize = response.data.length;
+              while (!success && tries < responseSize) {
+                tries += 1;
 
-              if (Queue.contains(gifQ, randomGif.url)) {
-                response.data.splice(randIdx, 1);
-                continue;
+                randIdx = Math.floor(Math.random() * response.data.length);
+                const randomGif = response.data[randIdx];
+
+                if (Queue.contains(gifQ, randomGif.url)) {
+                  response.data.splice(randIdx, 1);
+                  continue;
+                }
+
+                Queue.append(gifQ, randomGif.url);
+                message.channel.send(randomGif.url);
+                success = true;
               }
 
-              Queue.append(gifQ, randomGif.url);
-              message.channel.send(randomGif.url);
-              success = true;
+              if (!success) {
+                message.channel.send('No new gifs found for ' + query + ' :(');
+              }
+            } catch (err) {
+              const currentDate = '[' + new Date().toUTCString() + '] ';
+              console.log(currentDate + err);
+              message.channel.send('Error with giphycat wtf');
             }
-
-            if (!success) {
-              message.channel.send('No new gifs found for ' + query + ' :(');
-            }
-          } catch (err) {
-            const currentDate = '[' + new Date().toUTCString() + '] ';
-            console.log(currentDate + err);
-            message.channel.send('Error with giphycat wtf');
-          }
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+    } catch (err) {
+      const currentDate = '[' + new Date().toUTCString() + '] ';
+      console.log(currentDate + err);
+      message.channel.send('Error with giphycat wtf');
+    }
   } else if (command === 'help' || command === '?') {
     message.author.send(`Hi there~\nThe available commands are:\n
       !help
@@ -235,6 +300,8 @@ client.on('message', (message) => {
         message.channel.send('Error finding ' + query + '.');
       }
     });
+  } else if (command === 'msg') {
+    
   }
 });
 
