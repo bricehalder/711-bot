@@ -12,11 +12,37 @@ const gfClient = gphApiClient(giphy);
 const client = new Discord.Client();
 const gifQ = Queue.queue(3);
 
+const GIF_CHANCE = .25;
+
 let waitingForResponse;
 
 function rand(lst) {
   return lst[Math.floor(Math.random() * lst.length)];
 }
+
+function randMillisecondsBtwn(floor, ceil) {
+  flr = floor * 1000;
+  cl = ceil * 1000;
+  return Math.random() * (cl - flr) + flr;
+}
+
+/**
+ * Wrapper function to send messages with typing effects and variable delay.
+ * @param {Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel} channel
+ * @param {string} messageToSend
+ */
+function realisticSend(channel, messageToSend) {
+  channel.startTyping();
+  sleepLen = messageToSend.length / (Math.random() * 50 + 10);
+  sleep(sleepLen).then(() => {
+    channel.send(messageToSend);
+  });
+  channel.stopTyping();
+}
+
+const sleep = (floor, ceil = floor) => {
+  return new Promise((resolve) => setTimeout(resolve, randMillisecondsBtwn(floor, ceil)));
+};
 
 const responses = [
   'You\'re messaging a bot.',
@@ -66,23 +92,44 @@ const sharedDumbResponses = [
   'Thank you.',
 ];
 
+const weirdGifResponses = [
+  'Didn\'t like that?',
+  'Oh, my apologies.',
+  'Try again next time.',
+  'A poor choice.',
+  'Not quite right.',
+  'Maybe Giphy just doesn\'t like you.',
+  'I tried my best.',
+];
+
+const weirdGifPrompts = [
+  'no',
+  'ew',
+  'oop',
+  'wtf',
+];
+
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
   waitingForResponse = 0;
 });
 
 client.on('message', (message) => {
+  wordList = message.content.toLowerCase().split(' ');
+
   if (message.channel.type === 'dm' && !message.author.bot) {
     console.log(message.author.username + ': ' + message.content);
-    message.author.send(rand(responses));
+    realisticSend(message.channel, rand(responses));
     return;
   }
 
-  if (waitingForResponse === 1 && !message.author.bot) {
-    waitingForResponse = 0;
-    if (message.content.toLowerCase() === 'no') {
-      message.channel.send('Oh, my apologies.');
-      return;
+  if (waitingForResponse > 0 && !message.author.bot) {
+    if (waitingForResponse === 1) {
+      waitingForResponse = 0;
+      if (weirdGifPrompts.some((prompt) => wordList.includes(prompt))) {
+        realisticSend(message.channel, rand(weirdGifResponses));
+        return;
+      }
     }
   }
 
@@ -116,12 +163,11 @@ client.on('message', (message) => {
     return;
   }
 
-  if (message.content.toLowerCase().includes('dumb') && !message.author.bot) {
+  if (wordList.includes('dumb') && !message.author.bot) {
     message.channel.send(`jimmy your dumb`);
     return;
   }
 
-  wordList = message.content.toLowerCase().split(' ');
   if (wordList.includes('ping')) {
     if (wordList.includes('melody')) {
       message.channel.send(`<@411045186282455040> you have been summoned!`);
@@ -202,8 +248,9 @@ client.on('message', (message) => {
       return;
     }
 
-    if (Math.random() < .25) {
+    if (Math.random() < GIF_CHANCE) {
       query = 'gif ' + query;
+      waitingForResponse = 1;
       console.log(query);
     }
 
@@ -262,7 +309,8 @@ client.on('message', (message) => {
       !dog
       !neko
       !gif [word]
-      !hisoka [words]`);
+      !hisoka [words]
+      !poke [name or pkmn #]`);
     message.channel.send(rand(dmResponses));
   } else if (command === 'ma' || command === 'im' || command === 'tu') {
     message.channel.send('Ha! You fool! Did you mean $' + command + '?');
@@ -286,8 +334,6 @@ client.on('message', (message) => {
     };
     xhr.send(xml);
   } else if (command === 'poke') {
-    console.log(message.author.username + ': ' + message.author.id);
-
     request.get('https://pokeapi.co/api/v2/pokemon/' + args[0], {
     }, function(error, response, body) {
       if (!error && response.statusCode == 200) {
@@ -300,8 +346,6 @@ client.on('message', (message) => {
         message.channel.send('Error finding ' + query + '.');
       }
     });
-  } else if (command === 'msg') {
-    
   }
 });
 
