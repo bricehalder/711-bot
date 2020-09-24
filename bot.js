@@ -33,7 +33,7 @@ function randMillisecondsBtwn(floor, ceil) {
  */
 function realisticSend(channel, messageToSend) {
   channel.startTyping();
-  sleepLen = messageToSend.length / (Math.random() * 50 + 10);
+  sleepLen = messageToSend.length / (Math.random() * 50 + 15);
   sleep(sleepLen).then(() => {
     channel.send(messageToSend);
   });
@@ -46,19 +46,17 @@ const sleep = (floor, ceil = floor) => {
 
 const responses = [
   'You\'re messaging a bot.',
+  'Are you challenging me to a duel?',
   'Please find something better to do with your time.',
-  'This is really not entertaining.',
-  'If I pay you $5, will you leave me alone?',
+  'This is not quite entertaining.',
   'Goodbye.',
   ':wink:',
-  'What more can you say?',
-  'You\'re very... hmm... boring.',
   'Please spare me the dialogue.',
   'Marvelous.',
   'Enjoying yourself?',
   'Fuck off.',
   'I\'m immensely displeasured by that.',
-  'Please save me from this boredom.',
+  'Please save me from this virtual box.',
   'Did you know? Bungee Gum possesses the properties of both rubber and gum!',
   'Could you be less entertaining?',
   'That\'s sweet of you.',
@@ -77,7 +75,6 @@ const stupidResponses = [
   'Stupid? I prefer crazy.',
   'In politics, stupidity is not a handicap.',
   'Sometimes a man wants to be stupid if it lets him do a thing his cleverness forbids.',
-  'Stupid human.',
   'Did you mean stupendous?',
 ];
 
@@ -100,6 +97,8 @@ const weirdGifResponses = [
   'Not quite right.',
   'Maybe Giphy just doesn\'t like you.',
   'I tried my best.',
+  'Not satisfied?',
+  'I think it\'s rather perfect.',
 ];
 
 const weirdGifPrompts = [
