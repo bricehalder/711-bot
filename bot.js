@@ -13,8 +13,13 @@ const client = new Discord.Client();
 const gifQ = Queue.queue(3);
 
 const GIF_CHANCE = .25;
+const JOJO_CHANCE = .01;
 
 let waitingForResponse;
+
+function randInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
 
 function rand(lst) {
   return lst[Math.floor(Math.random() * lst.length)];
@@ -233,6 +238,11 @@ client.on('message', (message) => {
       }
     });
   } else if (command === 'dog') {
+    if (Math.random() < JOJO_CHANCE) {
+      message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
+      return;
+    }
+
     request.get('https://dog.ceo/api/breeds/image/random', {
     }, function(error, response, body) {
       if (!error && response.statusCode == 200) {
@@ -345,6 +355,8 @@ client.on('message', (message) => {
         message.channel.send('Error finding ' + query + '.');
       }
     });
+  } else {
+    console.log(`Unrecognized command: ${command}\n`);
   }
 });
 
