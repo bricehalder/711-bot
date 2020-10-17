@@ -236,7 +236,7 @@ client.on('message', (message) => {
         console.log(error);
       }
     });
-  } else if (command === 'dog') {
+  } else if (command === 'dog' || command === 'inu') {
     if (Math.random() < JOJO_CHANCE) {
       message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
       return;
