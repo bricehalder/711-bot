@@ -2,6 +2,7 @@
 const Discord = require('discord.js');
 const Queue = require('./queue.js');
 const gphApiClient = require('giphy-js-sdk-core');
+const math = require('mathjs');
 const request = require('request');
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 const convert = require('xml-js');
@@ -227,7 +228,7 @@ client.on('message', (message) => {
         message.channel.send('Syntax: !roll [integer]');
       }
     }
-  } else if (command === 'neko') {
+  } else if (command === 'neko' || command === 'cat') {
     request.get('http://thecatapi.com/api/images/get?format=src&type=png', {
     }, function(error, response, body) {
       if (!error && response.statusCode == 200) {
@@ -237,11 +238,6 @@ client.on('message', (message) => {
       }
     });
   } else if (command === 'dog' || command === 'inu') {
-    if (Math.random() < JOJO_CHANCE) {
-      message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
-      return;
-    }
-
     request.get('https://dog.ceo/api/breeds/image/random', {
     }, function(error, response, body) {
       if (!error && response.statusCode == 200) {
@@ -314,11 +310,14 @@ client.on('message', (message) => {
       !beep
       !server
       !roll [optional: number]
-      !dog
-      !neko
+      !dog | inu
+      !cat | neko
       !gif [word]
       !hisoka [words]
-      !poke [name or pkmn #]`);
+      !poke [name or pkmn #]
+      !say [phrase]
+      !eval [math expression]
+      !jojo`);
     message.channel.send(rand(dmResponses));
   } else if (command === 'ma' || command === 'im' || command === 'tu') {
     message.channel.send('Ha! You fool! Did you mean $' + command + '?');
@@ -359,6 +358,16 @@ client.on('message', (message) => {
         console.log(err);
       });
       message.channel.send(message.content.slice(4, message.content.length));
+  } else if (command === 'eval') {
+      try {
+        message.channel.send(math.evaluate(query));       
+      } catch(err) {
+          const currentDate = '[' + new Date().toUTCString() + '] ';
+          console.log(currentDate + err);
+          message.channel.send('Error evaluating expression :\(');
+      }
+  } else if (command === 'jojo') {
+      message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
   } else {
     console.log(`Unrecognized command: ${command}\n`);
   }
