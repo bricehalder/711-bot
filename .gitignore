@@ -3,3 +3,4 @@ config.json
 Pem/
 ssh
 .vscode/
+.DS_Store
