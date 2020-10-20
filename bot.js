@@ -169,7 +169,6 @@ client.on('message', (message) => {
 
   if (wordList.includes('dumb') && !message.author.bot) {
     message.channel.send(`jimmy your dumb`);
-    return;
   }
 
   if (wordList.includes('ping')) {
@@ -237,7 +236,7 @@ client.on('message', (message) => {
         console.log(error);
       }
     });
-  } else if (command === 'dog') {
+  } else if (command === 'dog' || command === 'inu') {
     if (Math.random() < JOJO_CHANCE) {
       message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
       return;
@@ -355,6 +354,11 @@ client.on('message', (message) => {
         message.channel.send('Error finding ' + query + '.');
       }
     });
+  } else if (command === 'say') {
+      message.delete().catch((err) => {
+        console.log(err);
+      });
+      message.channel.send(message.content.slice(4, message.content.length));
   } else {
     console.log(`Unrecognized command: ${command}\n`);
   }
