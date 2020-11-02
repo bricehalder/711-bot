@@ -5,6 +5,7 @@ const gphApiClient = require('giphy-js-sdk-core');
 const math = require('mathjs');
 const request = require('request');
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+const FastAverageColor = require('fast-average-color-node');
 const convert = require('xml-js');
 const DeepAI = require('deepai');
 const {prefix, token, giphy, deepai} = require('./config.json');
@@ -319,7 +320,8 @@ client.on('message', (message) => {
       !poke [name or pkmn #]
       !say [phrase]
       !eval [math expression]
-      !jojo`);
+      !jojo
+      !hd [image link (works best with anime images)]`);
     message.channel.send(rand(dmResponses));
   } else if (command === 'ma' || command === 'im' || command === 'tu') {
     message.channel.send('Ha! You fool! Did you mean $' + command + '?');
@@ -345,6 +347,11 @@ client.on('message', (message) => {
   } else if (command === 'poke') {
     request.get('https://pokeapi.co/api/v2/pokemon/' + args[0], {
     }, function(error, response, body) {
+      if (!query.length) {
+        message.channel.send('Usage: !poke [name of pokemon]');
+        return;
+      }
+
       if (!error && response.statusCode == 200) {
         if (args[1] === 'shiny') {
           message.channel.send(JSON.parse(body).sprites.front_shiny);
@@ -361,6 +368,11 @@ client.on('message', (message) => {
     });
     message.channel.send(message.content.slice(4, message.content.length));
   } else if (command === 'eval') {
+    if (!query.length) {
+      message.channel.send('Usage: !eval [math expression]');
+      return;
+    }
+
     try {
       message.channel.send(math.evaluate(query));
     } catch (err) {
@@ -370,9 +382,9 @@ client.on('message', (message) => {
     }
   } else if (command === 'jojo') {
     message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
-  } else if (command === 'upscale') {
+  } else if (command === 'hd') {
     if (!query.length) {
-      message.channel.send('No image link provided!');
+      message.channel.send('Usage: !hd [image link]\n\nWorks best with anime images.');
       return;
     }
 
@@ -381,7 +393,16 @@ client.on('message', (message) => {
         const resp = await DeepAI.callStandardApi('waifu2x', {
           image: query,
         });
-        message.channel.send(`Here is your upscaled image: ${resp.output_url}`);
+        imgUrl = resp.output_url;
+
+        const embed = new Discord.MessageEmbed().setImage(imgUrl);
+
+        const color = await FastAverageColor.getAverageColor(imgUrl);
+        embed.setColor(color.hex);
+        embed.setFooter(`Average color: ${color.hex}`);
+
+        message.channel.send(`Here is your HD waifu/husbando: `);
+        message.channel.send(embed);
       } catch (err) {
         message.channel.send('API Error (not my fault).');
         console.log(err);
