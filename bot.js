@@ -6,9 +6,11 @@ const math = require('mathjs');
 const request = require('request');
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 const convert = require('xml-js');
-const {prefix, token, giphy} = require('./config.json');
+const DeepAI = require('deepai');
+const {prefix, token, giphy, deepai} = require('./config.json');
 
 
+DeepAI.setApiKey(deepai);
 const gfClient = gphApiClient(giphy);
 const client = new Discord.Client();
 const gifQ = Queue.queue(3);
@@ -354,20 +356,37 @@ client.on('message', (message) => {
       }
     });
   } else if (command === 'say') {
-      message.delete().catch((err) => {
-        console.log(err);
-      });
-      message.channel.send(message.content.slice(4, message.content.length));
+    message.delete().catch((err) => {
+      console.log(err);
+    });
+    message.channel.send(message.content.slice(4, message.content.length));
   } else if (command === 'eval') {
-      try {
-        message.channel.send(math.evaluate(query));       
-      } catch(err) {
-          const currentDate = '[' + new Date().toUTCString() + '] ';
-          console.log(currentDate + err);
-          message.channel.send('Error evaluating expression :\(');
-      }
+    try {
+      message.channel.send(math.evaluate(query));
+    } catch (err) {
+      const currentDate = '[' + new Date().toUTCString() + '] ';
+      console.log(currentDate + err);
+      message.channel.send('Error evaluating expression :\(');
+    }
   } else if (command === 'jojo') {
-      message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
+    message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
+  } else if (command === 'upscale') {
+    if (!query.length) {
+      message.channel.send('No image link provided!');
+      return;
+    }
+
+    (async function() {
+      try {
+        const resp = await DeepAI.callStandardApi('waifu2x', {
+          image: query,
+        });
+        message.channel.send(`Here is your upscaled image: ${resp.output_url}`);
+      } catch (err) {
+        message.channel.send('API Error (not my fault).');
+        console.log(err);
+      }
+    })();
   } else {
     console.log(`Unrecognized command: ${command}\n`);
   }
