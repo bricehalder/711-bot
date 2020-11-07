@@ -8,7 +8,7 @@ const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 const FastAverageColor = require('fast-average-color-node');
 const convert = require('xml-js');
 const DeepAI = require('deepai');
-const {prefix, token, giphy, deepai} = require('./config.json');
+const {prefix, token, giphy, deepai, prod, prodIDs} = require('./config.json');
 
 
 DeepAI.setApiKey(deepai);
@@ -20,6 +20,11 @@ const GIF_CHANCE = .25;
 const JOJO_CHANCE = .01;
 
 let waitingForResponse;
+
+let claimAlert;
+const lastClaimTime = new Map();
+const nextClaimTime = new Map();
+const claimString = 'The next claim reset is in ';
 
 function randInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
@@ -35,6 +40,20 @@ function randMillisecondsBtwn(floor, ceil) {
   return Math.random() * (cl - flr) + flr;
 }
 
+function parseClaimStr(claimStr) {
+  resetInd = claimStr.indexOf(claimString) + claimString.length;
+  timeStr = claimStr.substr(resetInd, 9);
+  time = timeStr.split('**')[1];
+  if (time.includes('h')) {
+    hours = parseInt(time.split('h')[0]);
+    mins = parseInt(time.split(' ')[1]);
+  } else {
+    hours = 0;
+    mins = parseInt(time);
+  }
+  return {hours, mins};
+}
+
 /**
  * Wrapper function to send messages with typing effects and variable delay.
  * @param {Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel} channel
@@ -48,6 +67,12 @@ function realisticSend(channel, messageToSend) {
   });
   channel.stopTyping();
 }
+
+// eslint-disable-next-line no-extend-native
+Date.prototype.addTime = function(h, t = 0) {
+  this.setTime(this.getTime() + (h * 60 * 60 * 1000) + (t * 60 * 1000));
+  return this;
+};
 
 const sleep = (floor, ceil = floor) => {
   return new Promise((resolve) => setTimeout(resolve, randMillisecondsBtwn(floor, ceil)));
@@ -123,6 +148,10 @@ client.on('ready', () => {
 });
 
 client.on('message', (message) => {
+  if (prodIDs.includes(message.guild.id)) {
+    if (!prod) return;
+  }
+
   wordList = message.content.toLowerCase().split(' ');
 
   if (message.channel.type === 'dm' && !message.author.bot) {
@@ -201,6 +230,25 @@ client.on('message', (message) => {
     message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('%', '$') + '?');
     waitingForResponse = 1;
     return;
+  }
+
+  if (message.content.includes('Sefarix') && message.content.includes('married')) {
+    lastClaimTime[message.guild.id] = new Date();
+    clearTimeout(claimAlert);
+  }
+
+  if (message.content.includes('Sefarix') && message.content.includes(claimString)) {
+    const {hours, mins} = parseClaimStr(message.content);
+    if (!nextClaimTime[message.guild.id] || lastClaimTime[message.guild.id] > nextClaimTime[message.guild.id]) {
+      nextClaimTime[message.guild.id] = new Date().addTime(hours, mins - 5);
+
+      console.log(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
+      claimAlert = setTimeout(function() {
+        client.users.fetch('323918762380099594').then((user) => {
+          user.send('Time to claim!');
+        });
+      }, nextClaimTime[message.guild.id] - new Date());
+    }
   }
 
   if (!message.content.startsWith(prefix) || message.author.bot) return;
