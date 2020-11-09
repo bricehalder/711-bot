@@ -19,6 +19,8 @@ const gifQ = Queue.queue(3);
 const GIF_CHANCE = .25;
 const JOJO_CHANCE = .01;
 
+let debug = !prod;
+
 let waitingForResponse;
 
 let claimAlert;
@@ -52,6 +54,10 @@ function parseClaimStr(claimStr) {
     mins = parseInt(time);
   }
   return {hours, mins};
+}
+
+function debugPrint(obj) {
+  if (debug) console.log(obj);
 }
 
 /**
@@ -148,316 +154,320 @@ client.on('ready', () => {
 });
 
 client.on('message', (message) => {
-  if (prodIDs.includes(message.guild.id)) {
-    if (!prod) return;
-  }
-
-  wordList = message.content.toLowerCase().split(' ');
-
-  if (message.channel.type === 'dm' && !message.author.bot) {
-    console.log(message.author.username + ': ' + message.content);
-    realisticSend(message.channel, rand(responses));
-    return;
-  }
-
-  if (waitingForResponse > 0 && !message.author.bot) {
-    if (waitingForResponse === 1) {
-      waitingForResponse = 0;
-      if (weirdGifPrompts.some((prompt) => wordList.includes(prompt))) {
-        realisticSend(message.channel, rand(weirdGifResponses));
-        return;
-      }
+  try {
+    if (prodIDs.includes(message.guild.id)) {
+      if (!prod) return;
     }
-  }
 
-  if (!message.author.bot && message.content.toLowerCase().includes('stupid bot')) {
-    message.channel.send(rand(stupidResponses.concat(sharedDumbResponses)));
-    return;
-  }
+    wordList = message.content.toLowerCase().split(' ');
 
-  if (!message.author.bot && message.content.toLowerCase().includes('dumb bot')) {
-    message.channel.send(rand(sharedDumbResponses));
-    return;
-  }
-
-  if (message.content.toLowerCase().includes('hi anne')) {
-    message.channel.send('Hi Annoomoonoo');
-    return;
-  }
-
-  if (message.content.toLowerCase().includes('hi melody')) {
-    message.channel.send('Hi Mooloody');
-    return;
-  }
-
-  if (message.content.toLowerCase().includes('hi brice')) {
-    message.channel.send('Hi Boorooce');
-    return;
-  }
-
-  if (message.content.toLowerCase().includes('hi lena')) {
-    message.channel.send('Hi Loonoo');
-    return;
-  }
-
-  if (wordList.includes('dumb') && !message.author.bot) {
-    message.channel.send(`jimmy your dumb`);
-  }
-
-  if (wordList.includes('ping')) {
-    if (wordList.includes('melody')) {
-      message.channel.send(`<@411045186282455040> you have been summoned!`);
+    if (message.channel.type === 'dm' && !message.author.bot) {
+      console.log(message.author.username + ': ' + message.content);
+      realisticSend(message.channel, rand(responses));
       return;
     }
 
-    if (wordList.includes('anne')) {
-      message.channel.send(`<@234538345974202368> you have been summoned!`);
-      return;
-    }
-
-    if (wordList.includes('brice')) {
-      message.channel.send(`<@323918762380099594> you have been summoned!`);
-      return;
-    }
-
-    if (wordList.includes('lena')) {
-      message.channel.send(`<@604964844805947393> you have been summoned!`);
-      return;
-    }
-  }
-
-  if (message.content.startsWith('%')) {
-    message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('%', '$') + '?');
-    waitingForResponse = 1;
-    return;
-  }
-
-  if (message.content.includes('Sefarix') && message.content.includes('married')) {
-    lastClaimTime[message.guild.id] = new Date();
-    clearTimeout(claimAlert);
-  }
-
-  if (message.content.includes('Sefarix') && message.content.includes(claimString)) {
-    const {hours, mins} = parseClaimStr(message.content);
-    if (!nextClaimTime[message.guild.id] || lastClaimTime[message.guild.id] > nextClaimTime[message.guild.id]) {
-      nextClaimTime[message.guild.id] = new Date().addTime(hours, mins - 5);
-
-      console.log(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
-      claimAlert = setTimeout(function() {
-        client.users.fetch('323918762380099594').then((user) => {
-          user.send('Time to claim!');
-        });
-      }, nextClaimTime[message.guild.id] - new Date());
-    }
-  }
-
-  if (!message.content.startsWith(prefix) || message.author.bot) return;
-
-  const args = message.content.slice(prefix.length).trim().split(/ +/);
-  const command = args.shift().toLowerCase();
-  let query = args.toString().replace(/,/g, ' ');
-
-  if (command === 'ping') {
-    message.channel.send('Pong.');
-  } else if (command === 'beep') {
-    message.channel.send('Boop.');
-  } else if (command === 'server') {
-    message.channel.send(`Server name: ${message.guild.name}` +
-    `\nTotal members: ${message.guild.memberCount}`);
-  } else if (command === 'roll') {
-    if (args.length === 0) {
-      message.channel.send(Math.floor((Math.random() * 100) + 1));
-    } else {
-      try {
-        const num = Number.parseInt(args[0]);
-        if (isNaN(num)) {
-          throw new Error();
+    if (waitingForResponse > 0 && !message.author.bot) {
+      if (waitingForResponse === 1) {
+        waitingForResponse = 0;
+        if (weirdGifPrompts.some((prompt) => wordList.includes(prompt))) {
+          realisticSend(message.channel, rand(weirdGifResponses));
+          return;
         }
-        message.channel.send(Math.floor((Math.random() * num) + 1));
-        return;
-      } catch (err) {
-        message.channel.send('Syntax: !roll [integer]');
       }
     }
-  } else if (command === 'neko' || command === 'cat') {
-    request.get('http://thecatapi.com/api/images/get?format=src&type=png', {
-    }, function(error, response, body) {
-      if (!error && response.statusCode == 200) {
-        message.channel.send(response.request.uri.href);
-      } else {
-        console.log(error);
-      }
-    });
-  } else if (command === 'dog' || command === 'inu') {
-    request.get('https://dog.ceo/api/breeds/image/random', {
-    }, function(error, response, body) {
-      if (!error && response.statusCode == 200) {
-        message.channel.send(JSON.parse(response.body).message);
-      } else {
-        console.log(error);
-      }
-    });
-  } else if (command === 'gif') {
-    if (args.length === 0) {
-      message.channel.send('Usage: !gif [word(s)]');
+
+    if (!message.author.bot && message.content.toLowerCase().includes('stupid bot')) {
+      message.channel.send(rand(stupidResponses.concat(sharedDumbResponses)));
       return;
     }
 
-    if (Math.random() < GIF_CHANCE) {
-      query = 'gif ' + query;
+    if (!message.author.bot && message.content.toLowerCase().includes('dumb bot')) {
+      message.channel.send(rand(sharedDumbResponses));
+      return;
+    }
+
+    if (message.content.toLowerCase().includes('hi anne')) {
+      message.channel.send('Hi Annoomoonoo');
+      return;
+    }
+
+    if (message.content.toLowerCase().includes('hi melody')) {
+      message.channel.send('Hi Mooloody');
+      return;
+    }
+
+    if (message.content.toLowerCase().includes('hi brice')) {
+      message.channel.send('Hi Boorooce');
+      return;
+    }
+
+    if (message.content.toLowerCase().includes('hi lena')) {
+      message.channel.send('Hi Loonoo');
+      return;
+    }
+
+    if (wordList.includes('dumb') && !message.author.bot) {
+      message.channel.send(`jimmy your dumb`);
+    }
+
+    if (wordList.includes('ping')) {
+      if (wordList.includes('melody')) {
+        message.channel.send(`<@411045186282455040> you have been summoned!`);
+        return;
+      }
+
+      if (wordList.includes('anne')) {
+        message.channel.send(`<@234538345974202368> you have been summoned!`);
+        return;
+      }
+
+      if (wordList.includes('brice')) {
+        message.channel.send(`<@323918762380099594> you have been summoned!`);
+        return;
+      }
+
+      if (wordList.includes('lena')) {
+        message.channel.send(`<@604964844805947393> you have been summoned!`);
+        return;
+      }
+    }
+
+    if (message.content.startsWith('%')) {
+      message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('%', '$') + '?');
       waitingForResponse = 1;
-      console.log(query);
+      return;
     }
 
-    if (query.includes('\'')) {
-      query.replace('\'', '\\\'');
-      console.log(query);
+    if (message.content.includes('Sefarix') && message.content.includes('married')) {
+      lastClaimTime[message.guild.id] = new Date();
+      clearTimeout(claimAlert);
     }
 
-    try {
-      gfClient.search('gifs', {'q': query})
-          .then((response) => {
-            try {
-              success = false;
-              tries = 0;
-              responseSize = response.data.length;
-              while (!success && tries < responseSize) {
-                tries += 1;
+    if (message.content.includes('Sefarix') && message.content.includes(claimString)) {
+      const {hours, mins} = parseClaimStr(message.content);
+      if (!nextClaimTime[message.guild.id] || lastClaimTime[message.guild.id] > nextClaimTime[message.guild.id]) {
+        nextClaimTime[message.guild.id] = new Date().addTime(hours, mins - 5);
 
-                randIdx = Math.floor(Math.random() * response.data.length);
-                const randomGif = response.data[randIdx];
+        debugPrint(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
+        claimAlert = setTimeout(function() {
+          client.users.fetch('323918762380099594').then((user) => {
+            user.send('Time to claim!');
+          });
+        }, nextClaimTime[message.guild.id] - new Date());
+      }
+    }
 
-                if (Queue.contains(gifQ, randomGif.url)) {
-                  response.data.splice(randIdx, 1);
-                  continue;
+    if (!message.content.startsWith(prefix) || message.author.bot) return;
+
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+    let query = args.toString().replace(/,/g, ' ');
+
+    if (command === 'ping') {
+      message.channel.send('Pong.');
+    } else if (command === 'beep') {
+      message.channel.send('Boop.');
+    } else if (command === 'server') {
+      message.channel.send(`Server name: ${message.guild.name}` +
+      `\nTotal members: ${message.guild.memberCount}`);
+    } else if (command === 'roll') {
+      if (args.length === 0) {
+        message.channel.send(Math.floor((Math.random() * 100) + 1));
+      } else {
+        try {
+          const num = Number.parseInt(args[0]);
+          if (isNaN(num)) {
+            throw new Error();
+          }
+          message.channel.send(Math.floor((Math.random() * num) + 1));
+          return;
+        } catch (err) {
+          message.channel.send('Syntax: !roll [integer]');
+        }
+      }
+    } else if (command === 'neko' || command === 'cat') {
+      request.get('http://thecatapi.com/api/images/get?format=src&type=png', {
+      }, function(error, response, body) {
+        if (!error && response.statusCode == 200) {
+          message.channel.send(response.request.uri.href);
+        } else {
+          console.log(error);
+        }
+      });
+    } else if (command === 'dog' || command === 'inu') {
+      request.get('https://dog.ceo/api/breeds/image/random', {
+      }, function(error, response, body) {
+        if (!error && response.statusCode == 200) {
+          message.channel.send(JSON.parse(response.body).message);
+        } else {
+          console.log(error);
+        }
+      });
+    } else if (command === 'gif') {
+      if (args.length === 0) {
+        message.channel.send('Usage: !gif [word(s)]');
+        return;
+      }
+
+      if (Math.random() < GIF_CHANCE) {
+        query = 'gif ' + query;
+        waitingForResponse = 1;
+        console.log(query);
+      }
+
+      if (query.includes('\'')) {
+        query.replace('\'', '\\\'');
+        console.log(query);
+      }
+
+      try {
+        gfClient.search('gifs', {'q': query})
+            .then((response) => {
+              try {
+                success = false;
+                tries = 0;
+                responseSize = response.data.length;
+                while (!success && tries < responseSize) {
+                  tries += 1;
+
+                  randIdx = Math.floor(Math.random() * response.data.length);
+                  const randomGif = response.data[randIdx];
+
+                  if (Queue.contains(gifQ, randomGif.url)) {
+                    response.data.splice(randIdx, 1);
+                    continue;
+                  }
+
+                  Queue.append(gifQ, randomGif.url);
+                  message.channel.send(randomGif.url);
+                  success = true;
                 }
 
-                Queue.append(gifQ, randomGif.url);
-                message.channel.send(randomGif.url);
-                success = true;
+                if (!success) {
+                  message.channel.send('No new gifs found for ' + query + ' :(');
+                }
+              } catch (err) {
+                const currentDate = '[' + new Date().toUTCString() + '] ';
+                console.log(currentDate + err);
+                message.channel.send('Error with giphycat wtf');
               }
-
-              if (!success) {
-                message.channel.send('No new gifs found for ' + query + ' :(');
-              }
-            } catch (err) {
-              const currentDate = '[' + new Date().toUTCString() + '] ';
-              console.log(currentDate + err);
-              message.channel.send('Error with giphycat wtf');
-            }
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-    } catch (err) {
-      const currentDate = '[' + new Date().toUTCString() + '] ';
-      console.log(currentDate + err);
-      message.channel.send('Error with giphycat wtf');
-    }
-  } else if (command === 'help' || command === '?') {
-    message.author.send(`Hi there~\nThe available commands are:\n
-      !help
-      !ping
-      !beep
-      !server
-      !roll [optional: number]
-      !dog | inu
-      !cat | neko
-      !gif [word]
-      !hisoka [words]
-      !poke [name or pkmn #]
-      !say [phrase]
-      !eval [math expression]
-      !jojo
-      !hd [image link (works best with anime images)]`);
-    message.channel.send(rand(dmResponses));
-  } else if (command === 'ma' || command === 'im' || command === 'tu') {
-    message.channel.send('Ha! You fool! Did you mean $' + command + '?');
-  } else if (command === 'hisoka') {
-    const xhr = new XMLHttpRequest();
-    result = '';
-
-    xhr.open('POST', 'https://www.botlibre.com/rest/api/chat', true);
-
-    xhr.setRequestHeader('Content-Type', 'application/xml');
-
-    // eslint-disable-next-line max-len
-    const xml = '<chat application=\'1627452332476840447\' instance=\'165\'><message>' + query + '</message></chat>';
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        result = xhr.responseText;
-        const result1 = convert.xml2json(result, {compact: true, spaces: 4});
-        const convertedJSON = JSON.parse(result1);
-        message.channel.send(convertedJSON.response.message._text);
+            })
+            .catch((err) => {
+              console.log(err);
+            });
+      } catch (err) {
+        const currentDate = '[' + new Date().toUTCString() + '] ';
+        console.log(currentDate + err);
+        message.channel.send('Error with giphycat wtf');
       }
-    };
-    xhr.send(xml);
-  } else if (command === 'poke') {
-    request.get('https://pokeapi.co/api/v2/pokemon/' + args[0], {
-    }, function(error, response, body) {
+    } else if (command === 'help' || command === '?') {
+      message.author.send(`Hi there~\nThe available commands are:\n
+        !help
+        !ping
+        !beep
+        !server
+        !roll [optional: number]
+        !dog | inu
+        !cat | neko
+        !gif [word]
+        !hisoka [words]
+        !poke [name or pkmn #]
+        !say [phrase]
+        !eval [math expression]
+        !jojo
+        !hd [image link (works best with anime images)]`);
+      message.channel.send(rand(dmResponses));
+    } else if (command === 'ma' || command === 'im' || command === 'tu') {
+      message.channel.send('Ha! You fool! Did you mean $' + command + '?');
+    } else if (command === 'hisoka') {
+      const xhr = new XMLHttpRequest();
+      result = '';
+
+      xhr.open('POST', 'https://www.botlibre.com/rest/api/chat', true);
+
+      xhr.setRequestHeader('Content-Type', 'application/xml');
+
+      // eslint-disable-next-line max-len
+      const xml = '<chat application=\'1627452332476840447\' instance=\'165\'><message>' + query + '</message></chat>';
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          result = xhr.responseText;
+          const result1 = convert.xml2json(result, {compact: true, spaces: 4});
+          const convertedJSON = JSON.parse(result1);
+          message.channel.send(convertedJSON.response.message._text);
+        }
+      };
+      xhr.send(xml);
+    } else if (command === 'poke') {
+      request.get('https://pokeapi.co/api/v2/pokemon/' + args[0], {
+      }, function(error, response, body) {
+        if (!query.length) {
+          message.channel.send('Usage: !poke [name of pokemon]');
+          return;
+        }
+
+        if (!error && response.statusCode == 200) {
+          if (args[1] === 'shiny') {
+            message.channel.send(JSON.parse(body).sprites.front_shiny);
+          } else {
+            message.channel.send(JSON.parse(body).sprites.front_default);
+          }
+        } else {
+          message.channel.send('Error finding ' + query + '.');
+        }
+      });
+    } else if (command === 'say') {
+      message.delete().catch((err) => {
+        console.log(err);
+      });
+      message.channel.send(message.content.slice(4, message.content.length));
+    } else if (command === 'eval') {
       if (!query.length) {
-        message.channel.send('Usage: !poke [name of pokemon]');
+        message.channel.send('Usage: !eval [math expression]');
         return;
       }
 
-      if (!error && response.statusCode == 200) {
-        if (args[1] === 'shiny') {
-          message.channel.send(JSON.parse(body).sprites.front_shiny);
-        } else {
-          message.channel.send(JSON.parse(body).sprites.front_default);
-        }
-      } else {
-        message.channel.send('Error finding ' + query + '.');
-      }
-    });
-  } else if (command === 'say') {
-    message.delete().catch((err) => {
-      console.log(err);
-    });
-    message.channel.send(message.content.slice(4, message.content.length));
-  } else if (command === 'eval') {
-    if (!query.length) {
-      message.channel.send('Usage: !eval [math expression]');
-      return;
-    }
-
-    try {
-      message.channel.send(math.evaluate(query));
-    } catch (err) {
-      const currentDate = '[' + new Date().toUTCString() + '] ';
-      console.log(currentDate + err);
-      message.channel.send('Error evaluating expression :\(');
-    }
-  } else if (command === 'jojo') {
-    message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
-  } else if (command === 'hd') {
-    if (!query.length) {
-      message.channel.send('Usage: !hd [image link]\n\nWorks best with anime images.');
-      return;
-    }
-
-    (async function() {
       try {
-        const resp = await DeepAI.callStandardApi('waifu2x', {
-          image: query,
-        });
-        imgUrl = resp.output_url;
-
-        const embed = new Discord.MessageEmbed().setImage(imgUrl);
-
-        const color = await FastAverageColor.getAverageColor(imgUrl);
-        embed.setColor(color.hex);
-        embed.setFooter(`Average color: ${color.hex}`);
-
-        message.channel.send(`Here is your HD waifu/husbando: `);
-        message.channel.send(embed);
+        message.channel.send(math.evaluate(query));
       } catch (err) {
-        message.channel.send('API Error (not my fault).');
-        console.log(err);
+        const currentDate = '[' + new Date().toUTCString() + '] ';
+        console.log(currentDate + err);
+        message.channel.send('Error evaluating expression :\(');
       }
-    })();
-  } else {
-    console.log(`Unrecognized command: ${command}\n`);
+    } else if (command === 'jojo') {
+      message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
+    } else if (command === 'hd') {
+      if (!query.length) {
+        message.channel.send('Usage: !hd [image link]\n\nWorks best with anime images.');
+        return;
+      }
+
+      (async function() {
+        try {
+          const resp = await DeepAI.callStandardApi('waifu2x', {
+            image: query,
+          });
+          imgUrl = resp.output_url;
+
+          const embed = new Discord.MessageEmbed().setImage(imgUrl);
+
+          const color = await FastAverageColor.getAverageColor(imgUrl);
+          embed.setColor(color.hex);
+          embed.setFooter(`Average color: ${color.hex}`);
+
+          message.channel.send(`Here is your HD waifu/husbando: `);
+          message.channel.send(embed);
+        } catch (err) {
+          message.channel.send('API Error (not my fault).');
+          console.log(err);
+        }
+      })();
+    } else {
+      console.log(`Unrecognized command: ${command}\n`);
+    }
+  } catch (err) {
+    console.log(err);
   }
 });
 
