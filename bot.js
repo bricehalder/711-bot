@@ -8,7 +8,7 @@ const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 const FastAverageColor = require('fast-average-color-node');
 const convert = require('xml-js');
 const DeepAI = require('deepai');
-const {prefix, token, giphy, deepai, prod, prodIDs} = require('./config.json');
+const {prefix, token, giphy, deepai, prod, prodIDs, ownerID} = require('./config.json');
 
 
 DeepAI.setApiKey(deepai);
@@ -19,7 +19,7 @@ const gifQ = Queue.queue(3);
 const GIF_CHANCE = .25;
 const JOJO_CHANCE = .01;
 
-let debug = !prod;
+const debug = !prod;
 
 let waitingForResponse;
 
@@ -28,8 +28,27 @@ const lastClaimTime = new Map();
 const nextClaimTime = new Map();
 const claimString = 'The next claim reset is in ';
 
+const notMyFaultPic = 'https://i.imgur.com/TbYPQf5.png';
+const pkmnWithHyphenInName = [
+  250, 474, 782, 783, 784,
+];
+
+const padToThree = (number) => number <= 999 ? `00${number}`.slice(-3) : number;
+
+const sleep = (floor, ceil = floor) => {
+  return new Promise((resolve) => setTimeout(resolve, randMillisecondsBtwn(floor, ceil)));
+};
+
 function randInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
+}
+
+function titleCase(str) {
+  let splitStr = str.toLowerCase().split(' ');
+  for (let i = 0; i < splitStr.length; i++) {
+    splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
+  }
+  return splitStr.join(' ');
 }
 
 function rand(lst) {
@@ -60,6 +79,13 @@ function debugPrint(obj) {
   if (debug) console.log(obj);
 }
 
+function sendToOwner(message) {
+  client.users.fetch(ownerID).then((user) => {
+    user.send(message);
+  });
+}
+
+
 /**
  * Wrapper function to send messages with typing effects and variable delay.
  * @param {Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel} channel
@@ -80,9 +106,6 @@ Date.prototype.addTime = function(h, t = 0) {
   return this;
 };
 
-const sleep = (floor, ceil = floor) => {
-  return new Promise((resolve) => setTimeout(resolve, randMillisecondsBtwn(floor, ceil)));
-};
 
 const responses = [
   'You\'re messaging a bot.',
@@ -155,8 +178,10 @@ client.on('ready', () => {
 
 client.on('message', (message) => {
   try {
-    if (prodIDs.includes(message.guild.id)) {
-      if (!prod) return;
+    if (message.guild) {
+      if (prodIDs.includes(message.guild.id)) {
+        if (!prod) return;
+      }
     }
 
     wordList = message.content.toLowerCase().split(' ');
@@ -241,7 +266,10 @@ client.on('message', (message) => {
 
     if (message.content.includes('Sefarix') && message.content.includes('married')) {
       lastClaimTime[message.guild.id] = new Date();
+      console.log(claimAlert);
       clearTimeout(claimAlert);
+      console.log(message.content);
+      console.log(claimAlert);
     }
 
     if (message.content.includes('Sefarix') && message.content.includes(claimString)) {
@@ -251,9 +279,7 @@ client.on('message', (message) => {
 
         debugPrint(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
         claimAlert = setTimeout(function() {
-          client.users.fetch('323918762380099594').then((user) => {
-            user.send('Time to claim!');
-          });
+          sendToOwner('Time to claim!');
         }, nextClaimTime[message.guild.id] - new Date());
       }
     }
@@ -376,7 +402,7 @@ client.on('message', (message) => {
         !say [phrase]
         !eval [math expression]
         !jojo
-        !hd [image link (works best with anime images)]`);
+        !hd/2x [image link (works best with anime images)]`);
       message.channel.send(rand(dmResponses));
     } else if (command === 'ma' || command === 'im' || command === 'tu') {
       message.channel.send('Ha! You fool! Did you mean $' + command + '?');
@@ -400,22 +426,145 @@ client.on('message', (message) => {
       };
       xhr.send(xml);
     } else if (command === 'poke') {
-      request.get('https://pokeapi.co/api/v2/pokemon/' + args[0], {
-      }, function(error, response, body) {
-        if (!query.length) {
-          message.channel.send('Usage: !poke [name of pokemon]');
+      let pkName;
+      let pkFlavor = '';
+      let alolaFlavor;
+      let formCount;
+      let formQ;
+
+      new Promise(function(resolve, reject) {
+        request.get('https://pokeapi.co/api/v2/pokemon-species/' + args[0], {
+        }, function(error, response, body) {
+          if (!query.length) {
+            message.channel.send('Usage: !poke [name of pokemon]');
+            return;
+          }
+
+          if (!error && response.statusCode === 200) {
+            const resp = JSON.parse(body);
+            
+            pkName = titleCase(resp.name);
+
+            formCount = resp.varieties.length;
+            formQ = Queue.queue(formCount);
+            for (let i = 0; i < formCount; i++) {
+              Queue.append(formQ, resp.varieties[i].pokemon.url);
+            }
+            
+            flavors = resp.flavor_text_entries;
+            let i = 0;
+            for (i; i < flavors.length; i++) {
+              if (flavors[i].language.name === 'en') {
+                pkFlavor = flavors[i].flavor_text;
+                if (flavors[i].version.name === 'ultra-sun') {
+                  break;
+                }
+              }
+            }
+            
+            for (i; i < flavors.length; i++) {
+              if (flavors[i].language.name === 'en') {
+                alolaFlavor = flavors[i].flavor_text;
+              }
+            }
+
+            resolve(Queue.next(formQ));
+          } else {
+            message.channel.send(`Error finding ${query}. Try again with their National Pokédex number?`);
+            return;
+          }
+        });
+      }).then((pkURL) => {
+        if (pkURL === '') {
+          message.channel.send(`Error finding ${query}. Try again with their National Pokédex number?`);
           return;
         }
 
-        if (!error && response.statusCode == 200) {
-          if (args[1] === 'shiny') {
-            message.channel.send(JSON.parse(body).sprites.front_shiny);
+        request.get(pkURL, {
+        }, function(error, response, body) {
+          if (!error && response.statusCode === 200) {
+            const resp = JSON.parse(body);
+            let imgUrl;
+
+            if (args[1] === 'shiny') {
+              imgUrl = resp.sprites.front_shiny;
+            } else {
+              imgUrl = resp.sprites.front_default;
+            }
+
+            const embed = new Discord.MessageEmbed().setImage(imgUrl);
+            const alter = formCount > 1;
+
+            let formName = '';
+
+            if (alter) {
+              formName = resp.name.split('-')[1];
+            }
+
+            embed.setTitle(`**#${padToThree(resp.id)}** ${pkName}`);
+            embed.setDescription(`*${pkFlavor}*`);
+            embed.setFooter(`${alter && formName ? `${titleCase(formName)} Form` : ''}`);
+
+            FastAverageColor.getAverageColor(imgUrl).then((color) => {
+              embed.setColor(color.hex);
+              message.channel.send(embed).then((sentMsg) => {
+              if (!alter) {
+                return;
+              }
+
+              sentMsg.react('🥬');
+
+              const filter = (reaction, user) => reaction.emoji.name === '🥬' && user.id !== sentMsg.author.id;
+              const collector = sentMsg.createReactionCollector(filter, { max: 20, time: 3 * 60 * 1000 }); // 1 min
+
+              collector.on('collect', async (reaction, user) => {
+                pkURL = Queue.next(formQ);
+
+                request.get(pkURL, {
+                    }, function(error, response, body) {
+                    if (!error && response.statusCode === 200) {
+                    const resp = JSON.parse(body);
+                    let imgUrl;
+
+                    if (args[1] === 'shiny') {
+                    imgUrl = resp.sprites.front_shiny;
+                    } else {
+                    imgUrl = resp.sprites.front_default;
+                    }
+                    
+                    imgUrl = imgUrl ? imgUrl : notMyFaultPic;
+                    embed.setImage(imgUrl);
+                    
+                    let formName;
+                    if (resp.name.indexOf('-') > 0) {
+                      formName = resp.name.substr(resp.name.indexOf('-') + 1);
+                      formName = formName.replace('-', ' ');
+                    }
+                    embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
+
+                    if (formName === 'alola') {
+                      embed.setDescription(`*${alolaFlavor}*`);
+                    } else {
+                      embed.setDescription(`*${pkFlavor}*`);
+                    }
+
+                    FastAverageColor.getAverageColor(imgUrl).then((color) => {
+                        embed.setColor(color.hex);
+                        sentMsg.edit(embed);
+                        });
+
+                    reaction.users.remove(user.id);
+
+                    }
+                  });
+
+                });
+              });
+            });
           } else {
-            message.channel.send(JSON.parse(body).sprites.front_default);
+            message.channel.send(`Error finding ${query}. Try again with their National Pokédex number?`);
           }
-        } else {
-          message.channel.send('Error finding ' + query + '.');
-        }
+        });
       });
     } else if (command === 'say') {
       message.delete().catch((err) => {
@@ -437,9 +586,9 @@ client.on('message', (message) => {
       }
     } else if (command === 'jojo') {
       message.channel.send({files: [`images/dog${randInt(10)}.jpg`]});
-    } else if (command === 'hd') {
+    } else if (command === 'hd' || command === '2x') {
       if (!query.length) {
-        message.channel.send('Usage: !hd [image link]\n\nWorks best with anime images.');
+        message.channel.send(`Usage: !${command} [image link]\n\nWorks best with anime images.`);
         return;
       }
 
@@ -452,7 +601,7 @@ client.on('message', (message) => {
 
           const embed = new Discord.MessageEmbed().setImage(imgUrl);
 
-          const color = await FastAverageColor.getAverageColor(imgUrl);
+          const color = await FastAverageColor.getAverageColor(imgUrl, {ignoredColor: [0, 0, 0, 255]});
           embed.setColor(color.hex);
           embed.setFooter(`Average color: ${color.hex}`);
 
@@ -463,6 +612,8 @@ client.on('message', (message) => {
           console.log(err);
         }
       })();
+    } else if (command === 'test') {
+      sendToOwner(query);
     } else {
       console.log(`Unrecognized command: ${command}\n`);
     }
