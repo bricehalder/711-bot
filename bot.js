@@ -28,6 +28,7 @@ const lastClaimTime = new Map();
 const nextClaimTime = new Map();
 const claimString = 'The next claim reset is in ';
 
+const notMyFaultPic = 'https://i.imgur.com/TbYPQf5.png';
 const pkmnWithHyphenInName = [
   250, 474, 782, 783, 784,
 ];
@@ -42,8 +43,12 @@ function randInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
-function capitalize(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
+function titleCase(str) {
+  let splitStr = str.toLowerCase().split(' ');
+  for (let i = 0; i < splitStr.length; i++) {
+    splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
+  }
+  return splitStr.join(' ');
 }
 
 function rand(lst) {
@@ -421,11 +426,11 @@ client.on('message', (message) => {
       };
       xhr.send(xml);
     } else if (command === 'poke') {
-      let pkURL = '';
       let pkName;
       let pkFlavor = '';
+      let alolaFlavor;
       let formCount;
-      const additionalForms = [];
+      let formQ;
 
       new Promise(function(resolve, reject) {
         request.get('https://pokeapi.co/api/v2/pokemon-species/' + args[0], {
@@ -437,25 +442,33 @@ client.on('message', (message) => {
 
           if (!error && response.statusCode === 200) {
             const resp = JSON.parse(body);
-
-            pkName = capitalize(resp.name);
-            pkURL = resp.varieties[0].pokemon.url;
+            
+            pkName = titleCase(resp.name);
 
             formCount = resp.varieties.length;
-            if (formCount > 1) {
-              for (let i = 1; i < formCount; i++) {
-                additionalForms.push(resp.varieties[i].pokemon.url);
-              }
+            formQ = Queue.queue(formCount);
+            for (let i = 0; i < formCount; i++) {
+              Queue.append(formQ, resp.varieties[i].pokemon.url);
             }
-
+            
             flavors = resp.flavor_text_entries;
-            for (let i = 0; i < flavors.length; i++) {
+            let i = 0;
+            for (i; i < flavors.length; i++) {
               if (flavors[i].language.name === 'en') {
                 pkFlavor = flavors[i].flavor_text;
+                if (flavors[i].version.name === 'ultra-sun') {
+                  break;
+                }
+              }
+            }
+            
+            for (i; i < flavors.length; i++) {
+              if (flavors[i].language.name === 'en') {
+                alolaFlavor = flavors[i].flavor_text;
               }
             }
 
-            resolve(pkURL);
+            resolve(Queue.next(formQ));
           } else {
             message.channel.send(`Error finding ${query}. Try again with their National Pokédex number?`);
             return;
@@ -480,7 +493,7 @@ client.on('message', (message) => {
             }
 
             const embed = new Discord.MessageEmbed().setImage(imgUrl);
-            const alter = resp.name.includes('-') && !pkmnWithHyphenInName.includes(resp.id);
+            const alter = formCount > 1;
 
             let formName = '';
 
@@ -490,57 +503,66 @@ client.on('message', (message) => {
 
             embed.setTitle(`**#${padToThree(resp.id)}** ${pkName}`);
             embed.setDescription(`*${pkFlavor}*`);
-            embed.setFooter(`${alter ? `${capitalize(formName)} Form` : ''}`);
+            embed.setFooter(`${alter && formName ? `${titleCase(formName)} Form` : ''}`);
 
             FastAverageColor.getAverageColor(imgUrl).then((color) => {
               embed.setColor(color.hex);
-              message.channel.send(embed);
-            });
-          } else {
-            message.channel.send(`Error finding ${query}. Try again with their National Pokédex
-              number?`).then((sentMsg) => {
+              message.channel.send(embed).then((sentMsg) => {
               if (!alter) {
                 return;
               }
 
               sentMsg.react('🥬');
 
-              const filter = (reaction, user) => {
-                return ['🥬'].includes(reaction.emoji.name) && user.id !== sentMsg.author.id;
-              };
+              const filter = (reaction, user) => reaction.emoji.name === '🥬' && user.id !== sentMsg.author.id;
+              const collector = sentMsg.createReactionCollector(filter, { max: 20, time: 3 * 60 * 1000 }); // 1 min
 
-              sentMsg.awaitReactions(filter, {max: 10, time: 60000, errors: ['time']}).then((collected) => {
-                const reaction = collected.first();
+              collector.on('collect', async (reaction, user) => {
+                pkURL = Queue.next(formQ);
 
-                if (reaction.emoji.name === '🥬') {
-                  pkURL = additionalForms.pop();
-
-                  request.get(pkURL, {
-                  }, function(error, response, body) {
+                request.get(pkURL, {
+                    }, function(error, response, body) {
                     if (!error && response.statusCode === 200) {
-                      const resp = JSON.parse(body);
-                      let imgUrl;
+                    const resp = JSON.parse(body);
+                    let imgUrl;
 
-                      if (args[1] === 'shiny') {
-                        imgUrl = resp.sprites.front_shiny;
-                      } else {
-                        imgUrl = resp.sprites.front_default;
-                      }
+                    if (args[1] === 'shiny') {
+                    imgUrl = resp.sprites.front_shiny;
+                    } else {
+                    imgUrl = resp.sprites.front_default;
+                    }
+                    
+                    imgUrl = imgUrl ? imgUrl : notMyFaultPic;
+                    embed.setImage(imgUrl);
+                    
+                    let formName;
+                    if (resp.name.indexOf('-') > 0) {
+                      formName = resp.name.substr(resp.name.indexOf('-') + 1);
+                      formName = formName.replace('-', ' ');
+                    }
+                    embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
 
-                      embed.setImage(imgUrl);
+                    if (formName === 'alola') {
+                      embed.setDescription(`*${alolaFlavor}*`);
+                    } else {
+                      embed.setDescription(`*${pkFlavor}*`);
+                    }
 
-                      formName = resp.name.split('-')[1];
-                      embed.setFooter(`${capitalize(formName)} Form`);
-
-                      FastAverageColor.getAverageColor(imgUrl).then((color) => {
+                    FastAverageColor.getAverageColor(imgUrl).then((color) => {
                         embed.setColor(color.hex);
                         sentMsg.edit(embed);
-                      });
+                        });
+
+                    reaction.users.remove(user.id);
+
                     }
                   });
-                }
+
+                });
               });
             });
+          } else {
+            message.channel.send(`Error finding ${query}. Try again with their National Pokédex number?`);
           }
         });
       });

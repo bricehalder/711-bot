@@ -1,5 +1,6 @@
 function Queue(c) {
   this.max = c;
+  this.cur = 0;
   this.elements = [];
 }
 
@@ -20,6 +21,14 @@ module.exports = {
     return q.elements.shift();
   },
 
+  next: function(q) {
+    if (q.cur < q.elements.length) {
+      ret = q.elements[q.cur];
+    }
+    q.cur = (q.cur + 1) % q.max; 
+    return ret;
+  },
+
   isEmpty: function(q) {
     return q.elements.length === 0;
   },
@@ -36,4 +45,9 @@ module.exports = {
   elements: function(q) {
     return q.elements;
   },
+
+  length: function(q,) {
+    return q.elements.length;
+  }
+
 };
