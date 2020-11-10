@@ -433,7 +433,7 @@ client.on('message', (message) => {
       let formQ;
 
       new Promise(function(resolve, reject) {
-        request.get('https://pokeapi.co/api/v2/pokemon-species/' + args[0], {
+        request.get('https://pokeapi.co/api/v2/pokemon-species/' + args[0].toLowerCase(), {
         }, function(error, response, body) {
           if (!query.length) {
             message.channel.send('Usage: !poke [name of pokemon]');
