@@ -17,7 +17,6 @@ const client = new Discord.Client();
 const gifQ = Queue.queue(3);
 
 const GIF_CHANCE = .25;
-const JOJO_CHANCE = .01;
 
 const debug = !prod;
 
@@ -29,9 +28,6 @@ const nextClaimTime = new Map();
 const claimString = 'The next claim reset is in ';
 
 const notMyFaultPic = 'https://i.imgur.com/TbYPQf5.png';
-const pkmnWithHyphenInName = [
-  250, 474, 782, 783, 784,
-];
 
 const padToThree = (number) => number <= 999 ? `00${number}`.slice(-3) : number;
 
@@ -44,7 +40,7 @@ function randInt(max) {
 }
 
 function titleCase(str) {
-  let splitStr = str.toLowerCase().split(' ');
+  const splitStr = str.toLowerCase().split(' ');
   for (let i = 0; i < splitStr.length; i++) {
     splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
   }
@@ -104,7 +100,7 @@ function testUrl(url) {
   return new Promise((resolve, reject) => {
     request(url, function(error, response, body) {
       if (error) {
-        reject (error);
+        reject(error);
       }
       resolve(response.statusCode);
     });
@@ -137,11 +133,13 @@ const responses = [
   'Care to stick around for a chat?',
 ];
 
+/*
 const dmResponses = [
   'Check your DM\'s. :wink:',
   'I\'ve DM\'d you the commmands. :wink:',
   'I\'ve sent you a personal message. :wink:',
 ];
+*/
 
 const stupidResponses = [
   'Stupid bot? Me?',
@@ -441,7 +439,6 @@ client.on('message', (message) => {
       }*/
 
       let queryName;
-      let queryShiny;
       let shiny;
 
       if (args[0] === 'shiny' || args[0] === 'sh') {
@@ -453,7 +450,7 @@ client.on('message', (message) => {
         }
         queryName = args[0];
       }
-      
+
       let pkName;
       let pkFlavor = '';
       let alolaFlavor;
@@ -470,7 +467,7 @@ client.on('message', (message) => {
 
           if (!error && response.statusCode === 200) {
             const resp = JSON.parse(body);
-            
+
             pkName = titleCase(resp.name);
 
             formCount = resp.varieties.length;
@@ -478,7 +475,7 @@ client.on('message', (message) => {
             for (let i = 0; i < formCount; i++) {
               Queue.append(formQ, resp.varieties[i].pokemon.url);
             }
-            
+
             flavors = resp.flavor_text_entries;
             let i = 0;
             for (i; i < flavors.length; i++) {
@@ -489,7 +486,7 @@ client.on('message', (message) => {
                 }
               }
             }
-            
+
             for (i; i < flavors.length; i++) {
               if (flavors[i].language.name === 'en') {
                 alolaFlavor = flavors[i].flavor_text;
@@ -520,7 +517,7 @@ client.on('message', (message) => {
               imgUrl = resp.sprites.front_default;
             }
 
-            const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` + 
+            const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` +
             `${shiny ? 'shiny' : 'normal' }/${pkName.toLowerCase()}.gif`;
             const embed = new Discord.MessageEmbed().setImage(resp.id < 650 ? pkGif : imgUrl);
             const alter = formCount > 1;
@@ -538,76 +535,76 @@ client.on('message', (message) => {
             FastAverageColor.getAverageColor(imgUrl).then((color) => {
               embed.setColor(color.hex);
               message.channel.send(embed).then((sentMsg) => {
-              if (!alter) {
-                return;
-              }
+                if (!alter) {
+                  return;
+                }
 
-              sentMsg.react('🥬');
+                sentMsg.react('🥬');
 
-              const filter = (reaction, user) => reaction.emoji.name === '🥬' && user.id !== sentMsg.author.id;
-              const collector = sentMsg.createReactionCollector(filter, { max: 20, time: 3 * 60 * 1000 }); // 1 min
+                const filter = (reaction, user) => reaction.emoji.name === '🥬' && user.id !== sentMsg.author.id;
+                const collector = sentMsg.createReactionCollector(filter, {max: 20, time: 3 * 60 * 1000}); // 1 min
 
-              collector.on('collect', async (reaction, user) => {
-                pkURL = Queue.next(formQ);
+                collector.on('collect', async (reaction, user) => {
+                  pkURL = Queue.next(formQ);
 
-                request.get(pkURL, {
-                    }, function(error, response, body) {
+                  request.get(pkURL, {
+                  }, function(error, response, body) {
                     if (!error && response.statusCode === 200) {
-                    const resp = JSON.parse(body);
-                    let imgUrl;
+                      const resp = JSON.parse(body);
+                      let imgUrl;
 
-                    if (shiny) {
-                      imgUrl = resp.sprites.front_shiny;
-                    } else {
-                      imgUrl = resp.sprites.front_default;
-                    }
-                    
-                    let formName = '';
-                    if (resp.name.indexOf('-') > 0) {
-                      formName = resp.name.substr(resp.name.indexOf('-') + 1);
-                      formName = formName.replace('-', ' ');
-                    }
+                      if (shiny) {
+                        imgUrl = resp.sprites.front_shiny;
+                      } else {
+                        imgUrl = resp.sprites.front_default;
+                      }
 
-                    if (formName === 'alola') {
-                      formName = 'alolan';
-                      embed.setDescription(`*${alolaFlavor}*`);
-                    } else {
-                      embed.setDescription(`*${pkFlavor}*`);
-                    }
+                      let formName = '';
+                      if (resp.name.indexOf('-') > 0) {
+                        formName = resp.name.substr(resp.name.indexOf('-') + 1);
+                        formName = formName.replace('-', ' ');
+                      }
 
-                    embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
-                    
-                    const searchName = pkName.toLowerCase().concat((formName ? '-' : ''), formName).replace(' ', '-');
-                    const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` + 
+                      if (formName === 'alola') {
+                        formName = 'alolan';
+                        embed.setDescription(`*${alolaFlavor}*`);
+                      } else {
+                        embed.setDescription(`*${pkFlavor}*`);
+                      }
+
+                      embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
+
+                      const searchName = pkName.toLowerCase().concat((formName ? '-' : ''), formName).replace(' ', '-');
+                      const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` +
                       `${shiny ? 'shiny' : 'normal' }/${searchName}.gif`;
-                    const pkFormImg = `https://img.pokemondb.net/sprites/bank/` +
+                      const pkFormImg = `https://img.pokemondb.net/sprites/bank/` +
                       `${shiny ? 'shiny' : 'normal'}/${searchName}.png`;
 
-                    const formImgUrl = imgUrl ? imgUrl : pkFormImg;
+                      const formImgUrl = imgUrl ? imgUrl : pkFormImg;
 
-                    testUrl(pkGif).then((gifStatus) => {
+                      testUrl(pkGif).then((gifStatus) => {
                         if (gifStatus === 200) {
                           embed.setImage(pkGif);
                         }
-                        
-                        testUrl(formImgUrl).then((statusCode) => {
-                            if (gifStatus !== 200 && statusCode === 200) {
-                              embed.setImage(formImgUrl);
-                            } else if (gifStatus !== 200) {
-                              embed.setImage(notMyFaultPic);
-                            }
-                            
-                            FastAverageColor.getAverageColor(imgUrl ? imgUrl : embed.image.url).then((color) => {
-                                embed.setColor(color.hex);
-                                sentMsg.edit(embed);
-                            });
 
-                            reaction.users.remove(user.id);
+                        testUrl(formImgUrl).then((statusCode) => {
+                          if (gifStatus !== 200 && statusCode === 200) {
+                            embed.setImage(formImgUrl);
+                          } else if (gifStatus !== 200) {
+                            embed.setImage(notMyFaultPic);
+                          }
+
+                          FastAverageColor.getAverageColor(imgUrl ? imgUrl : embed.image.url).then((color) => {
+                            embed.setColor(color.hex);
+                            sentMsg.edit(embed);
+                          });
+
+                          reaction.users.remove(user.id);
                         });
-                        });
+                      });
                     }
-                    });
-              });
+                  });
+                });
               });
             });
           } else {
@@ -617,8 +614,8 @@ client.on('message', (message) => {
       });
     } else if (command === 'say') {
       message.delete().catch((err) => {
-          console.log(err);
-          });
+        console.log(err);
+      });
       message.channel.send(message.content.slice(4, message.content.length));
     } else if (command === 'eval') {
       if (!query.length) {
@@ -642,10 +639,10 @@ client.on('message', (message) => {
       }
 
       (async function() {
-       try {
-       const resp = await DeepAI.callStandardApi('waifu2x', {
-image: query,
-});
+        try {
+          const resp = await DeepAI.callStandardApi('waifu2x', {
+            image: query,
+          });
           imgUrl = resp.output_url;
 
           const embed = new Discord.MessageEmbed().setImage(imgUrl);
@@ -669,9 +666,8 @@ image: query,
       }
 
       timer = setTimeout(function() {
-          message.author.send('Timer up!');
+        message.author.send('Timer up!');
       }, args[0] * 60 * 1000);
-
     } else {
       console.log(`Unrecognized command: ${command}\n`);
     }
