@@ -100,6 +100,17 @@ function realisticSend(channel, messageToSend) {
   channel.stopTyping();
 }
 
+function testUrl(url) {
+  return new Promise((resolve, reject) => {
+    request(url, function(error, response, body) {
+      if (error) {
+        reject (error);
+      }
+      resolve(response.statusCode);
+    });
+  });
+}
+
 // eslint-disable-next-line no-extend-native
 Date.prototype.addTime = function(h, t = 0) {
   this.setTime(this.getTime() + (h * 60 * 60 * 1000) + (t * 60 * 1000));
@@ -388,7 +399,7 @@ client.on('message', (message) => {
         message.channel.send('Error with giphycat wtf');
       }
     } else if (command === 'help' || command === '?') {
-      message.author.send(`Hi there~\nThe available commands are:\n
+      message.channel.send(`The available commands are:\n
         !help
         !ping
         !beep
@@ -396,14 +407,13 @@ client.on('message', (message) => {
         !roll [optional: number]
         !dog | inu
         !cat | neko
-        !gif [word]
-        !hisoka [words]
-        !poke [name or pkmn #]
+        !gif [phrase]
+        !hisoka [phrase]
         !say [phrase]
         !eval [math expression]
         !jojo
-        !hd/2x [image link (works best with anime images)]`);
-      message.channel.send(rand(dmResponses));
+        !hd | 2x [image link (works best with anime images)]
+        !poke | pk | pokemon [pokemon name or #] [optional: shiny | sh]`);
     } else if (command === 'ma' || command === 'im' || command === 'tu') {
       message.channel.send('Ha! You fool! Did you mean $' + command + '?');
     } else if (command === 'hisoka') {
@@ -425,7 +435,27 @@ client.on('message', (message) => {
         }
       };
       xhr.send(xml);
-    } else if (command === 'poke') {
+    } else if (command === 'pk' || command === 'poke' || command === 'pokemon') {
+      /*
+      if (prodIDs.includes(message.guild.id)) {
+        message.channel.send('Command currently under maintanence. Try again later. :PPP');
+        return;
+      }*/
+
+      let queryName;
+      let queryShiny;
+      let shiny;
+
+      if (args[0] === 'shiny' || args[0] === 'sh') {
+        shiny = true;
+        queryName = args[1];
+      } else {
+        if (args[1] === 'shiny' || args[1] === 'sh') {
+          shiny = true;
+        }
+        queryName = args[0];
+      }
+      
       let pkName;
       let pkFlavor = '';
       let alolaFlavor;
@@ -433,7 +463,7 @@ client.on('message', (message) => {
       let formQ;
 
       new Promise(function(resolve, reject) {
-        request.get('https://pokeapi.co/api/v2/pokemon-species/' + args[0].toLowerCase(), {
+        request.get('https://pokeapi.co/api/v2/pokemon-species/' + queryName.toLowerCase(), {
         }, function(error, response, body) {
           if (!query.length) {
             message.channel.send('Usage: !poke [name of pokemon]');
@@ -486,13 +516,15 @@ client.on('message', (message) => {
             const resp = JSON.parse(body);
             let imgUrl;
 
-            if (args[1] === 'shiny') {
+            if (shiny) {
               imgUrl = resp.sprites.front_shiny;
             } else {
               imgUrl = resp.sprites.front_default;
             }
 
-            const embed = new Discord.MessageEmbed().setImage(imgUrl);
+            const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` + 
+            `${shiny ? 'shiny' : 'normal' }/${pkName.toLowerCase()}.gif`;
+            const embed = new Discord.MessageEmbed().setImage(resp.id < 650 ? pkGif : imgUrl);
             const alter = formCount > 1;
 
             let formName = '';
@@ -526,39 +558,58 @@ client.on('message', (message) => {
                     const resp = JSON.parse(body);
                     let imgUrl;
 
-                    if (args[1] === 'shiny') {
-                    imgUrl = resp.sprites.front_shiny;
+                    if (shiny) {
+                      imgUrl = resp.sprites.front_shiny;
                     } else {
-                    imgUrl = resp.sprites.front_default;
+                      imgUrl = resp.sprites.front_default;
                     }
                     
-                    imgUrl = imgUrl ? imgUrl : notMyFaultPic;
-                    embed.setImage(imgUrl);
-                    
-                    let formName;
+                    let formName = '';
                     if (resp.name.indexOf('-') > 0) {
                       formName = resp.name.substr(resp.name.indexOf('-') + 1);
                       formName = formName.replace('-', ' ');
                     }
-                    embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
 
                     if (formName === 'alola') {
+                      formName = 'alolan';
                       embed.setDescription(`*${alolaFlavor}*`);
                     } else {
                       embed.setDescription(`*${pkFlavor}*`);
                     }
 
-                    FastAverageColor.getAverageColor(imgUrl).then((color) => {
-                        embed.setColor(color.hex);
-                        sentMsg.edit(embed);
+                    embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
+                    
+                    const searchName = pkName.toLowerCase().concat((formName ? '-' : ''), formName).replace(' ', '-');
+                    const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` + 
+                      `${shiny ? 'shiny' : 'normal' }/${searchName}.gif`;
+                    const pkFormImg = `https://img.pokemondb.net/sprites/bank/` +
+                      `${shiny ? 'shiny' : 'normal'}/${searchName}.png`;
+
+                    const formImgUrl = imgUrl ? imgUrl : pkFormImg;
+
+                    testUrl(pkGif).then((gifStatus) => {
+                        if (gifStatus === 200) {
+                          embed.setImage(pkGif);
+                        }
+                        
+                        testUrl(formImgUrl).then((statusCode) => {
+                            if (gifStatus !== 200 && statusCode === 200) {
+                              embed.setImage(formImgUrl);
+                            } else if (gifStatus !== 200) {
+                              embed.setImage(notMyFaultPic);
+                            }
+                            
+                            FastAverageColor.getAverageColor(imgUrl ? imgUrl : embed.image.url).then((color) => {
+                                embed.setColor(color.hex);
+                                sentMsg.edit(embed);
+                            });
+
+                            reaction.users.remove(user.id);
                         });
-
-                    reaction.users.remove(user.id);
-
+                        });
                     }
-                  });
-
-                });
+                    });
+              });
               });
             });
           } else {
@@ -568,8 +619,8 @@ client.on('message', (message) => {
       });
     } else if (command === 'say') {
       message.delete().catch((err) => {
-        console.log(err);
-      });
+          console.log(err);
+          });
       message.channel.send(message.content.slice(4, message.content.length));
     } else if (command === 'eval') {
       if (!query.length) {
@@ -593,10 +644,10 @@ client.on('message', (message) => {
       }
 
       (async function() {
-        try {
-          const resp = await DeepAI.callStandardApi('waifu2x', {
-            image: query,
-          });
+       try {
+       const resp = await DeepAI.callStandardApi('waifu2x', {
+image: query,
+});
           imgUrl = resp.output_url;
 
           const embed = new Discord.MessageEmbed().setImage(imgUrl);
