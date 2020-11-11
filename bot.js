@@ -277,10 +277,7 @@ client.on('message', (message) => {
 
     if (message.content.includes('Sefarix') && message.content.includes('married')) {
       lastClaimTime[message.guild.id] = new Date();
-      console.log(claimAlert);
       clearTimeout(claimAlert);
-      console.log(message.content);
-      console.log(claimAlert);
     }
 
     if (message.content.includes('Sefarix') && message.content.includes(claimString)) {
@@ -413,7 +410,8 @@ client.on('message', (message) => {
         !eval [math expression]
         !jojo
         !hd | 2x [image link (works best with anime images)]
-        !poke | pk | pokemon [pokemon name or #] [optional: shiny | sh]`);
+        !poke | pk | pokemon [pokemon name or #] [optional: shiny | sh]
+        !timer [minutes]`);
     } else if (command === 'ma' || command === 'im' || command === 'tu') {
       message.channel.send('Ha! You fool! Did you mean $' + command + '?');
     } else if (command === 'hisoka') {
@@ -665,6 +663,15 @@ image: query,
       })();
     } else if (command === 'test') {
       sendToOwner(query);
+    } else if (command === 'timer') {
+      if (!args[0]) {
+        return;
+      }
+
+      timer = setTimeout(function() {
+          message.author.send('Timer up!');
+      }, args[0] * 60 * 1000);
+
     } else {
       console.log(`Unrecognized command: ${command}\n`);
     }
