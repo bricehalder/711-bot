@@ -287,7 +287,13 @@ client.on('message', (message) => {
 
         debugPrint(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
         claimAlert = setTimeout(function() {
+          prevClaimTime = lastClaimTime[message.guild.id];
           sendToOwner('Time to claim!');
+          timer2 = setTimeout(function() {
+            if (lastClaimTime[message.guild.id] === prevClaimTime) {
+              sendToOwner('CLAIM NOW!');
+            }
+          }, 2.5 * 60 * 1000);
         }, nextClaimTime[message.guild.id] - new Date());
       }
     }
