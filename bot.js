@@ -111,7 +111,7 @@ function testUrl(url) {
   });
 }
 
-async function nextPokeForm(formQ, pkURL, shiny, embed, pkName, pkFlavor, sentMsg) {
+async function nextPokeForm(formQ, pkURL, shiny, embed, pkName, pkFlavor, alolaFlavor, sentMsg) {
   pkURL = Queue.next(formQ);
 
   request.get(pkURL, {
@@ -614,10 +614,10 @@ client.on('message', (message) => {
               const collector = sentMsg.createReactionCollector(filter, { max: 20, time: 3 * 60 * 1000, dispose: true }); // 1 min
               
               collector.on('remove', async function () { nextPokeForm(formQ, pkURL, shiny, embed, pkName,
-              pkFlavor, sentMsg) });
+              pkFlavor, alolaFlavor, sentMsg) });
 
-              collector.on('collect', async function () { nextPokeForm(formQ, pkURL, shiny, embed, pkName, pkFlavor,
-              sentMsg) });
+              collector.on('collect', async function () { nextPokeForm(formQ, pkURL, shiny, embed, pkName,
+              pkFlavor, alolaFlavor, sentMsg) });
               });
             });
           } else {
