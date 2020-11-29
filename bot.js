@@ -173,7 +173,6 @@ Date.prototype.addTime = function(h, t = 0) {
   return this;
 };
 
-
 const responses = [
   'You\'re messaging a bot.',
   'Are you challenging me to a duel?',
@@ -686,6 +685,32 @@ client.on('message', (message) => {
       timer = setTimeout(function() {
         message.author.send('Timer up!');
       }, args[0] * 60 * 1000);
+    } else if (command === 'poll') {
+      if (!args[0]) {
+        message.channel.send('Usage: !poll {Title of Poll} [Option 1] [Option 2] [...]');
+        return;
+      }
+
+      console.log(query);
+      const titlePattern = /{(.+)}/;
+      const optionPattern = /(?<=\[).+?(?=\])/g;
+
+      const title = query.match(titlePattern) ? query.match(titlePattern)[1] : 'Poll!';
+      const options = query.match(optionPattern);
+
+      const pollEmbed = new Discord.MessageEmbed()
+          .setColor('#ff9e9e')
+          .setTitle(titleCase(title));
+
+      options.forEach((item, index) => {
+        pollEmbed.addField(`${index}\uFE0F\u20E3`, titleCase(item), true);
+      });
+
+      message.channel.send(pollEmbed).then((sentMsg) => {
+        options.forEach((item, index) => {
+          sentMsg.react(`${index}\uFE0F\u20E3`);
+        });
+      });
     } else {
       console.log(`Unrecognized command: ${command}\n`);
     }
