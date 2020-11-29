@@ -693,7 +693,6 @@ client.on('message', (message) => {
         return;
       }
 
-      console.log(query);
       const titlePattern = /{(.+)}/;
       const optionPattern = /(?<=\[).+?(?=\])/g;
 
@@ -704,15 +703,21 @@ client.on('message', (message) => {
           .setColor('#ff9e9e')
           .setTitle(titleCase(title));
 
-      options.forEach((item, index) => {
-        pollEmbed.addField(EmojiCharacters[String.fromCharCode(index + 97)], titleCase(item), true);
-      });
-
-      message.channel.send(pollEmbed).then((sentMsg) => {
+      if (options) {
         options.forEach((item, index) => {
-          sentMsg.react(EmojiCharacters[String.fromCharCode(index + 97)]);
+          pollEmbed.addField(EmojiCharacters[String.fromCharCode(index + 97)], titleCase(item), true);
         });
-      });
+
+        message.channel.send(pollEmbed).then((sentMsg) => {
+          options.forEach((item, index) => {
+            sentMsg.react(EmojiCharacters[String.fromCharCode(index + 97)]);
+          });
+        });
+      } else {
+        message.react('👍')
+            .then(() => message.react('👎'))
+            .then(() => message.react('🤷'));
+      }
     } else {
       console.log(`Unrecognized command: ${command}\n`);
     }
