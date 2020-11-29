@@ -107,6 +107,66 @@ function testUrl(url) {
   });
 }
 
+async function nextPokeForm(formQ, pkURL, shiny, embed, pkName, pkFlavor, alolaFlavor, sentMsg) {
+  pkURL = Queue.next(formQ);
+
+  request.get(pkURL, {
+  }, function(error, response, body) {
+    if (!error && response.statusCode === 200) {
+      const resp = JSON.parse(body);
+      let imgUrl;
+
+      if (shiny) {
+        imgUrl = resp.sprites.front_shiny;
+      } else {
+        imgUrl = resp.sprites.front_default;
+      }
+
+      let formName = '';
+      if (resp.name.indexOf('-') > 0) {
+        formName = resp.name.substr(resp.name.indexOf('-') + 1);
+        formName = formName.replace('-', ' ');
+      }
+
+      if (formName === 'alola') {
+        formName = 'alolan';
+        embed.setDescription(`*${alolaFlavor}*`);
+      } else {
+        embed.setDescription(`*${pkFlavor}*`);
+      }
+
+      embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
+
+      const searchName = pkName.toLowerCase().concat((formName ? '-' : ''), formName).replace(' ', '-');
+      const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` +
+        `${shiny ? 'shiny' : 'normal' }/${searchName}.gif`;
+      const pkFormImg = `https://img.pokemondb.net/sprites/bank/` +
+        `${shiny ? 'shiny' : 'normal'}/${searchName}.png`;
+
+      const formImgUrl = imgUrl ? imgUrl : pkFormImg;
+
+      testUrl(pkGif).then((gifStatus) => {
+        if (gifStatus === 200) {
+          embed.setImage(pkGif);
+        }
+
+        testUrl(formImgUrl).then((statusCode) => {
+          if (gifStatus !== 200 && statusCode === 200) {
+            embed.setImage(formImgUrl);
+          } else if (gifStatus !== 200) {
+            embed.setImage(notMyFaultPic);
+          }
+
+          FastAverageColor.getAverageColor(imgUrl ? imgUrl : embed.image.url).then((color) => {
+            embed.setColor(color.hex);
+            sentMsg.edit(embed);
+          });
+        });
+      });
+    }
+  });
+}
+
 // eslint-disable-next-line no-extend-native
 Date.prototype.addTime = function(h, t = 0) {
   this.setTime(this.getTime() + (h * 60 * 60 * 1000) + (t * 60 * 1000));
@@ -285,7 +345,13 @@ client.on('message', (message) => {
 
         debugPrint(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
         claimAlert = setTimeout(function() {
+          prevClaimTime = lastClaimTime[message.guild.id];
           sendToOwner('Time to claim!');
+          timer2 = setTimeout(function() {
+            if (lastClaimTime[message.guild.id] === prevClaimTime) {
+              sendToOwner('CLAIM NOW!');
+            }
+          }, 3 * 60 * 1000);
         }, nextClaimTime[message.guild.id] - new Date());
       }
     }
@@ -437,6 +503,10 @@ client.on('message', (message) => {
         message.channel.send('Command currently under maintanence. Try again later. :PPP');
         return;
       }*/
+      if (!args[0]) {
+        message.channel.send('no pokemon name provided u dumbo');
+        return;
+      }
 
       let queryName;
       let shiny;
@@ -542,68 +612,16 @@ client.on('message', (message) => {
                 sentMsg.react('🥬');
 
                 const filter = (reaction, user) => reaction.emoji.name === '🥬' && user.id !== sentMsg.author.id;
-                const collector = sentMsg.createReactionCollector(filter, {max: 20, time: 3 * 60 * 1000}); // 1 min
+                const collector = sentMsg.createReactionCollector(filter, {max: 20, time: 3 * 60 * 1000, dispose: true}); // 1 min
 
-                collector.on('collect', async (reaction, user) => {
-                  pkURL = Queue.next(formQ);
+                collector.on('remove', async function() {
+                  nextPokeForm(formQ, pkURL, shiny, embed, pkName,
+                      pkFlavor, alolaFlavor, sentMsg);
+                });
 
-                  request.get(pkURL, {
-                  }, function(error, response, body) {
-                    if (!error && response.statusCode === 200) {
-                      const resp = JSON.parse(body);
-                      let imgUrl;
-
-                      if (shiny) {
-                        imgUrl = resp.sprites.front_shiny;
-                      } else {
-                        imgUrl = resp.sprites.front_default;
-                      }
-
-                      let formName = '';
-                      if (resp.name.indexOf('-') > 0) {
-                        formName = resp.name.substr(resp.name.indexOf('-') + 1);
-                        formName = formName.replace('-', ' ');
-                      }
-
-                      if (formName === 'alola') {
-                        formName = 'alolan';
-                        embed.setDescription(`*${alolaFlavor}*`);
-                      } else {
-                        embed.setDescription(`*${pkFlavor}*`);
-                      }
-
-                      embed.setFooter(`${formName ? `${titleCase(formName)} Form` : ''}`);
-
-                      const searchName = pkName.toLowerCase().concat((formName ? '-' : ''), formName).replace(' ', '-');
-                      const pkGif = `https://img.pokemondb.net/sprites/black-white/anim/` +
-                      `${shiny ? 'shiny' : 'normal' }/${searchName}.gif`;
-                      const pkFormImg = `https://img.pokemondb.net/sprites/bank/` +
-                      `${shiny ? 'shiny' : 'normal'}/${searchName}.png`;
-
-                      const formImgUrl = imgUrl ? imgUrl : pkFormImg;
-
-                      testUrl(pkGif).then((gifStatus) => {
-                        if (gifStatus === 200) {
-                          embed.setImage(pkGif);
-                        }
-
-                        testUrl(formImgUrl).then((statusCode) => {
-                          if (gifStatus !== 200 && statusCode === 200) {
-                            embed.setImage(formImgUrl);
-                          } else if (gifStatus !== 200) {
-                            embed.setImage(notMyFaultPic);
-                          }
-
-                          FastAverageColor.getAverageColor(imgUrl ? imgUrl : embed.image.url).then((color) => {
-                            embed.setColor(color.hex);
-                            sentMsg.edit(embed);
-                          });
-
-                          reaction.users.remove(user.id);
-                        });
-                      });
-                    }
-                  });
+                collector.on('collect', async function() {
+                  nextPokeForm(formQ, pkURL, shiny, embed, pkName,
+                      pkFlavor, alolaFlavor, sentMsg);
                 });
               });
             });
