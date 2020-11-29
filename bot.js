@@ -1,6 +1,7 @@
 /* eslint-disable max-len */
 const Discord = require('discord.js');
 const Queue = require('./queue.js');
+const EmojiCharacters = require('./emojiCharacters');
 const gphApiClient = require('giphy-js-sdk-core');
 const math = require('mathjs');
 const request = require('request');
@@ -9,6 +10,7 @@ const FastAverageColor = require('fast-average-color-node');
 const convert = require('xml-js');
 const DeepAI = require('deepai');
 const {prefix, token, giphy, deepai, prod, prodIDs, ownerID} = require('./config.json');
+const emojiCharacters = require('./emojiCharacters');
 
 
 DeepAI.setApiKey(deepai);
@@ -703,12 +705,12 @@ client.on('message', (message) => {
           .setTitle(titleCase(title));
 
       options.forEach((item, index) => {
-        pollEmbed.addField(`${index}\uFE0F\u20E3`, titleCase(item), true);
+        pollEmbed.addField(EmojiCharacters[String.fromCharCode(index + 97)], titleCase(item), true);
       });
 
       message.channel.send(pollEmbed).then((sentMsg) => {
         options.forEach((item, index) => {
-          sentMsg.react(`${index}\uFE0F\u20E3`);
+          sentMsg.react(EmojiCharacters[String.fromCharCode(index + 97)]);
         });
       });
     } else {
