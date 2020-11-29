@@ -353,7 +353,7 @@ client.on('message', (message) => {
             if (lastClaimTime[message.guild.id] === prevClaimTime) {
               sendToOwner('CLAIM NOW!');
             }
-          }, 2.5 * 60 * 1000);
+          }, 3 * 60 * 1000);
         }, nextClaimTime[message.guild.id] - new Date());
       }
     }
@@ -505,6 +505,10 @@ client.on('message', (message) => {
         message.channel.send('Command currently under maintanence. Try again later. :PPP');
         return;
       }*/
+      if (!args[0]) {
+        message.channel.send('no pokemon name provided u dumbo');
+        return;
+      }
 
       let queryName;
       let queryShiny;
