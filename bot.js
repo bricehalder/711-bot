@@ -687,6 +687,7 @@ client.on('message', (message) => {
       timer = setTimeout(function() {
         message.author.send('Timer up!');
       }, args[0] * 60 * 1000);
+      message.channel.send(`Timer set for ${new Date().addTime(args[0] / 60).toLocaleString('en-US', {timeZone: 'America/New_York'})}`);
     } else if (command === 'poll') {
       if (!args[0]) {
         message.channel.send('Usage: !poll {Title of Poll} [Option 1] [Option 2] [...]');
