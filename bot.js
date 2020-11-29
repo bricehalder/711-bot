@@ -714,9 +714,9 @@ client.on('message', (message) => {
           });
         });
       } else {
-        message.react('👍')
-            .then(() => message.react('👎'))
-            .then(() => message.react('🤷'));
+        message.react('760235055506522132')
+            .then(() => message.react('760235056043655178'))
+            .then(() => message.react('760235037387653161'));
       }
     } else {
       console.log(`Unrecognized command: ${command}\n`);
