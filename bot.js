@@ -10,8 +10,6 @@ const FastAverageColor = require('fast-average-color-node');
 const convert = require('xml-js');
 const DeepAI = require('deepai');
 const {prefix, token, giphy, deepai, prod, prodIDs, ownerID} = require('./config.json');
-const emojiCharacters = require('./emojiCharacters');
-
 
 DeepAI.setApiKey(deepai);
 const gfClient = gphApiClient(giphy);
@@ -681,13 +679,36 @@ client.on('message', (message) => {
       sendToOwner(query);
     } else if (command === 'timer') {
       if (!args[0]) {
+        message.channel.send('Usage: !timer #h #m');
         return;
       }
 
+      hours = 0;
+      mins = 0;
+
+      if (args[0].includes('h')) {
+        hours = parseInt(args[0]);
+      }
+
+      if (args[0].includes('m')) {
+        mins = parseInt(args[0]);
+      }
+
+      if (args[1] && args[1].includes('m')) {
+        mins = parseInt(args[1]);
+      }
+
+      if (!hours && !mins) {
+        message.channel.send('Usage: !timer #h #m   (hours optional)');
+        return;
+      }
+
+      waitTime = hours * 60 * 60 * 1000 + mins * 60 * 1000;
+      console.log(hours, mins);
       timer = setTimeout(function() {
         message.author.send('Timer up!');
-      }, args[0] * 60 * 1000);
-      message.channel.send(`Timer set for ${new Date().addTime(args[0] / 60).toLocaleString('en-US', {timeZone: 'America/New_York'})}`);
+      }, waitTime);
+      message.channel.send(`Timer set for ${new Date().addTime((hours * 60 + mins) / 60).toLocaleString('en-US', {timeZone: 'America/New_York'})}`);
     } else if (command === 'poll') {
       if (!args[0]) {
         message.channel.send('Usage: !poll {Title of Poll} [Option 1] [Option 2] [...]');
