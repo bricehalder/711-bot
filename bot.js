@@ -1,14 +1,18 @@
 /* eslint-disable max-len */
 const Discord = require('discord.js');
-const Queue = require('./queue.js');
+const Queue = require('./queue');
 const EmojiCharacters = require('./emojiCharacters');
 const gphApiClient = require('giphy-js-sdk-core');
 const math = require('mathjs');
 const request = require('request');
-const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 const FastAverageColor = require('fast-average-color-node');
 const convert = require('xml-js');
 const DeepAI = require('deepai');
+
+const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+const Command = require('./commands/command').Command;
+const commands = require('./commands/commands').commands();
+
 const {prefix, token, giphy, deepai, prod, prodIDs, ownerID} = require('./config.json');
 
 DeepAI.setApiKey(deepai);
@@ -350,7 +354,7 @@ client.on('message', (message) => {
             if (lastClaimTime[message.guild.id] === prevClaimTime) {
               sendToOwner('CLAIM NOW!');
             }
-          }, 3 * 60 * 1000);
+          }, 3.25 * 60 * 1000);
         }, nextClaimTime[message.guild.id] - new Date());
       }
     }
@@ -361,6 +365,15 @@ client.on('message', (message) => {
     const command = args.shift().toLowerCase();
     let query = args.toString().replace(/,/g, ' ');
 
+    for (Com of commands) {
+      com = new Com();
+      // console.log(com.names);
+      if (com.names.includes(command)) {
+        com.execute(args, message);
+        return;
+      }
+    }
+
     if (command === 'ping') {
       message.channel.send('Pong.');
     } else if (command === 'beep') {
@@ -368,30 +381,6 @@ client.on('message', (message) => {
     } else if (command === 'server') {
       message.channel.send(`Server name: ${message.guild.name}` +
       `\nTotal members: ${message.guild.memberCount}`);
-    } else if (command === 'roll') {
-      if (args.length === 0) {
-        message.channel.send(Math.floor((Math.random() * 100) + 1));
-      } else {
-        try {
-          const num = Number.parseInt(args[0]);
-          if (isNaN(num)) {
-            throw new Error();
-          }
-          message.channel.send(Math.floor((Math.random() * num) + 1));
-          return;
-        } catch (err) {
-          message.channel.send('Syntax: !roll [integer]');
-        }
-      }
-    } else if (command === 'neko' || command === 'cat') {
-      request.get('http://thecatapi.com/api/images/get?format=src&type=png', {
-      }, function(error, response, body) {
-        if (!error && response.statusCode == 200) {
-          message.channel.send(response.request.uri.href);
-        } else {
-          console.log(error);
-        }
-      });
     } else if (command === 'dog' || command === 'inu') {
       request.get('https://dog.ceo/api/breeds/image/random', {
       }, function(error, response, body) {
@@ -704,7 +693,7 @@ client.on('message', (message) => {
       }
 
       waitTime = hours * 60 * 60 * 1000 + mins * 60 * 1000;
-      console.log(hours, mins);
+
       timer = setTimeout(function() {
         message.author.send('Timer up!');
       }, waitTime);

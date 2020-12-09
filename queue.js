@@ -25,7 +25,7 @@ module.exports = {
     if (q.cur < q.elements.length) {
       ret = q.elements[q.cur];
     }
-    q.cur = (q.cur + 1) % q.max; 
+    q.cur = (q.cur + 1) % q.max;
     return ret;
   },
 
@@ -46,8 +46,8 @@ module.exports = {
     return q.elements;
   },
 
-  length: function(q,) {
+  length: function(q) {
     return q.elements.length;
-  }
+  },
 
 };
