@@ -10,7 +10,6 @@ const convert = require('xml-js');
 const DeepAI = require('deepai');
 
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
-const Command = require('./commands/command').Command;
 const commands = require('./commands/commands').commands();
 
 const {prefix, token, giphy, deepai, prod, prodIDs, ownerID} = require('./config.json');
@@ -246,6 +245,9 @@ const weirdGifPrompts = [
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
   waitingForResponse = 0;
+
+  const guildList = client.guilds.cache.array();
+  guildList.forEach((guild) => console.log(guild.name));
 });
 
 client.on('message', (message) => {
@@ -275,12 +277,12 @@ client.on('message', (message) => {
     }
 
     if (!message.author.bot && message.content.toLowerCase().includes('stupid bot')) {
-      message.channel.send(rand(stupidResponses.concat(sharedDumbResponses)));
+      realisticSend(message.channel, rand(stupidResponses.concat(sharedDumbResponses)));
       return;
     }
 
     if (!message.author.bot && message.content.toLowerCase().includes('dumb bot')) {
-      message.channel.send(rand(sharedDumbResponses));
+      realisticSend(message.channel, rand(sharedDumbResponses));
       return;
     }
 
@@ -346,7 +348,7 @@ client.on('message', (message) => {
       if (!nextClaimTime[message.guild.id] || lastClaimTime[message.guild.id] > nextClaimTime[message.guild.id]) {
         nextClaimTime[message.guild.id] = new Date().addTime(hours, mins - 5);
 
-        debugPrint(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
+        console.log(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
         claimAlert = setTimeout(function() {
           prevClaimTime = lastClaimTime[message.guild.id];
           sendToOwner('Time to claim!');
@@ -354,7 +356,7 @@ client.on('message', (message) => {
             if (lastClaimTime[message.guild.id] === prevClaimTime) {
               sendToOwner('CLAIM NOW!');
             }
-          }, 3.25 * 60 * 1000);
+          }, 3 * 60 * 1000);
         }, nextClaimTime[message.guild.id] - new Date());
       }
     }
@@ -368,8 +370,8 @@ client.on('message', (message) => {
     for (Com of commands) {
       com = new Com();
       // console.log(com.names);
-      if (com.names.includes(command)) {
-        com.execute(args, message);
+      if (com.aliases.includes(command)) {
+        com.executeHandler(args, message);
         return;
       }
     }
