@@ -8,6 +8,7 @@ const request = require('request');
 const FastAverageColor = require('fast-average-color-node');
 const convert = require('xml-js');
 const DeepAI = require('deepai');
+const Robot = require('robotjs');
 
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 const commands = require('./commands/commands').commands();
@@ -20,6 +21,8 @@ const client = new Discord.Client();
 const gifQ = Queue.queue(3);
 
 const GIF_CHANCE = .25;
+const claimX = 358;
+const claimY = 988;
 
 const debug = !prod;
 
@@ -248,11 +251,51 @@ client.on('ready', () => {
 
   const guildList = client.guilds.cache.array();
   guildList.forEach((guild) => console.log(guild.name));
+  Robot.moveMouse(claimX, claimY);
+
+  const mouse = Robot.getMousePos();
+
+  // Get pixel color in hex format.
+  const hex = Robot.getPixelColor(mouse.x, mouse.y);
+  console.log('#' + hex + ' at x:' + mouse.x + ' y:' + mouse.y);
+
+  Robot.mouseClick();
 });
+
+function getReactColor(embed) {
+  // Get mouse position.
+  const mouse = Robot.getMousePos();
+
+  // Get pixel color in hex format.
+  const hex = Robot.getPixelColor(mouse.x, mouse.y);
+
+  const title = embed.author.name ?? '';
+  console.log('#' + hex + ' at x:' + mouse.x + ' y:' + mouse.y + ' / ' + title);
+
+  if (hex === 'e0d97e') {
+    console.log('Yellow Kakera Detected!');
+    Robot.mouseClick();
+  }
+}
 
 client.on('message', (message) => {
   try {
     if (message.guild) {
+      if (!message.author.bot && message.content === '$ma') {
+        Robot.moveMouse(claimX, claimY);
+      }
+
+      if (message.author.bot) {
+        for (const embed of message.embeds) {
+          if (embed.footer && embed.footer.text.length < 10) {
+            // $im detected
+            break;
+          }
+          setTimeout(function() {
+            getReactColor(embed);
+          }, 375);
+        }
+      }
       if (prodIDs.includes(message.guild.id)) {
         if (!prod) return;
       }
