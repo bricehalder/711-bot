@@ -17,7 +17,7 @@ const {prefix, token, giphy, deepai, prod, prodIDs, ownerID} = require('./config
 
 DeepAI.setApiKey(deepai);
 const gfClient = gphApiClient(giphy);
-const client = new Discord.Client();
+const client = new Discord.Client({partials: ['MESSAGE', 'CHANNEL', 'REACTION']});
 const gifQ = Queue.queue(3);
 
 const GIF_CHANCE = .25;
@@ -251,51 +251,38 @@ client.on('ready', () => {
 
   const guildList = client.guilds.cache.array();
   guildList.forEach((guild) => console.log(guild.name));
-  Robot.moveMouse(claimX, claimY);
-
-  const mouse = Robot.getMousePos();
-
-  // Get pixel color in hex format.
-  const hex = Robot.getPixelColor(mouse.x, mouse.y);
-  console.log('#' + hex + ' at x:' + mouse.x + ' y:' + mouse.y);
-
-  Robot.mouseClick();
 });
 
-function getReactColor(embed) {
-  // Get mouse position.
-  const mouse = Robot.getMousePos();
-
-  // Get pixel color in hex format.
-  const hex = Robot.getPixelColor(mouse.x, mouse.y);
-
-  const title = embed.author.name ?? '';
-  console.log('#' + hex + ' at x:' + mouse.x + ' y:' + mouse.y + ' / ' + title);
-
-  if (hex === 'e0d97e') {
-    console.log('Yellow Kakera Detected!');
-    Robot.mouseClick();
+client.on('messageReactionAdd', async (reaction, user) => {
+  // When we receive a reaction we check if the reaction is partial or not
+  if (reaction.partial) {
+    // If the message this reaction belongs to was removed the fetching might result in an API error, which we need to handle
+    try {
+      await reaction.fetch();
+    } catch (error) {
+      console.error('Something went wrong when fetching the message: ', error);
+      // Return as `reaction.message.author` may be undefined/null
+      return;
+    }
   }
-}
+  // Now the message has been cached and is fully available
+  if (reaction.emoji.name.includes('kakera') && user.bot) {
+    console.log(`${reaction.message.author.username}'s message "${reaction.message.content}" gained a reaction!`);
+    console.log(`React: ${reaction.emoji.name} ${reaction.emoji.identifier} ${reaction.emoji.id}\n`);
+    const name = reaction.emoji.name;
+    if (name === 'kakeraY' || name === 'kakeraO' || name === 'kakeraR' || name === 'kakeraW') {
+      Robot.moveMouse(claimX, claimY);
+      setTimeout(function() {
+        Robot.mouseClick();
+        Robot.mouseClick();
+      }, 100);
+    }
+  }
+});
 
 client.on('message', (message) => {
   try {
     if (message.guild) {
-      if (!message.author.bot && message.content === '$ma') {
-        Robot.moveMouse(claimX, claimY);
-      }
-
-      if (message.author.bot) {
-        for (const embed of message.embeds) {
-          if (embed.footer && embed.footer.text.length < 10) {
-            // $im detected
-            break;
-          }
-          setTimeout(function() {
-            getReactColor(embed);
-          }, 375);
-        }
-      }
       if (prodIDs.includes(message.guild.id)) {
         if (!prod) return;
       }
