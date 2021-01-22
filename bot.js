@@ -267,15 +267,12 @@ client.on('messageReactionAdd', async (reaction, user) => {
   }
   // Now the message has been cached and is fully available
   if (reaction.emoji.name.includes('kakera') && user.bot) {
-    console.log(`${reaction.message.author.username}'s message "${reaction.message.content}" gained a reaction!`);
-    console.log(`React: ${reaction.emoji.name} ${reaction.emoji.identifier} ${reaction.emoji.id}\n`);
     const name = reaction.emoji.name;
-    if (name === 'kakeraY' || name === 'kakeraO' || name === 'kakeraR' || name === 'kakeraW') {
+    if (name === 'kakeraP' || name === 'kakeraY' || name === 'kakeraO' || name === 'kakeraR' || name === 'kakeraW') {
       Robot.moveMouse(claimX, claimY);
       setTimeout(function() {
         Robot.mouseClick();
-        Robot.mouseClick();
-      }, 100);
+      }, randInt(300) + 350);
     }
   }
 });
