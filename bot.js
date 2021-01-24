@@ -337,16 +337,24 @@ client.on('message', (message) => {
     }
 
     if (message.content.includes('Sefarix') && message.content.includes('married')) {
+      if (!prodIDs.includes(message.guild.id)) {
+        return;
+      }
+
       lastClaimTime[message.guild.id] = new Date();
       clearTimeout(claimAlert);
     }
 
     if (message.content.includes('Sefarix') && message.content.includes(claimString)) {
+      if (!prodIDs.includes(message.guild.id)) {
+        return;
+      }
+
       const {hours, mins} = parseClaimStr(message.content);
       if (!nextClaimTime[message.guild.id] || lastClaimTime[message.guild.id] > nextClaimTime[message.guild.id]) {
         nextClaimTime[message.guild.id] = new Date().addTime(hours, mins - 5);
 
-        debugPrint(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
+        console.log(`next alert at ${nextClaimTime[message.guild.id].toLocaleString()}`);
         claimAlert = setTimeout(function() {
           prevClaimTime = lastClaimTime[message.guild.id];
           sendToOwner('Time to claim!');
