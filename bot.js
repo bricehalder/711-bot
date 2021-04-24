@@ -364,7 +364,7 @@ client.on('message', (message) => {
             if (lastClaimTime[message.guild.id] === prevClaimTime) {
               sendToOwner('CLAIM NOW!');
             }
-          }, 3 * 60 * 1000);
+          }, 3.5 * 60 * 1000);
         }, nextClaimTime[message.guild.id] - new Date());
       }
     }
@@ -686,15 +686,15 @@ client.on('message', (message) => {
       mins = 0;
 
       if (args[0].includes('h')) {
-        hours = parseInt(args[0]);
+        hours = parseFloat(args[0]);
       }
 
       if (args[0].includes('m')) {
-        mins = parseInt(args[0]);
+        mins = parseFloat(args[0]);
       }
 
       if (args[1] && args[1].includes('m')) {
-        mins = parseInt(args[1]);
+        mins = parseFloat(args[1]);
       }
 
       if (!hours && !mins) {
