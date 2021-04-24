@@ -268,11 +268,11 @@ client.on('messageReactionAdd', async (reaction, user) => {
   // Now the message has been cached and is fully available
   if (reaction.emoji.name.includes('kakera') && user.bot) {
     const name = reaction.emoji.name;
-    if (name === 'kakeraP' || name === 'kakeraY' || name === 'kakeraO' || name === 'kakeraR' || name === 'kakeraW') {
+    if (name === 'kakeraP' || name === 'kakeraO' || name === 'kakeraR' || name === 'kakeraW') {
       Robot.moveMouse(claimX, claimY);
       setTimeout(function() {
         Robot.mouseClick();
-      }, randInt(300) + 350);
+      }, randInt(500) + 400);
     }
   }
 });
