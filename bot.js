@@ -20,9 +20,15 @@ const gfClient = gphApiClient(giphy);
 const client = new Discord.Client({partials: ['MESSAGE', 'CHANNEL', 'REACTION']});
 const gifQ = Queue.queue(3);
 
+const screenSize = Robot.getScreenSize();
+
 const GIF_CHANCE = .25;
-const claimX = 358;
-const claimY = 988;
+var claimX, claimY;
+
+if (screenSize.width == 1440) {
+    claimX = 365;
+    claimY = 803;
+}
 
 const debug = !prod;
 
@@ -79,6 +85,13 @@ function parseClaimStr(claimStr) {
 
 function debugPrint(obj) {
   if (debug) console.log(obj);
+}
+
+function claim() {
+  Robot.moveMouse(claimX, claimY);
+  setTimeout(function() {
+    Robot.mouseClick();
+  }, randInt(250));
 }
 
 function sendToOwner(message) {
@@ -269,10 +282,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
   if (reaction.emoji.name.includes('kakera') && user.bot) {
     const name = reaction.emoji.name;
     if (name === 'kakeraP' || name === 'kakeraO' || name === 'kakeraR' || name === 'kakeraW') {
-      Robot.moveMouse(claimX, claimY);
-      setTimeout(function() {
-        Robot.mouseClick();
-      }, randInt(500) + 400);
+        claim();
     }
   }
 });
@@ -281,10 +291,11 @@ client.on('message', (message) => {
   try {
     if (message.guild) {
       if (prodIDs.includes(message.guild.id)) {
-        if (!prod) return;
+        // if (!prod) return;
       }
     }
 
+    console.log(message.content);
     wordList = message.content.toLowerCase().split(' ');
 
     if (message.channel.type === 'dm' && !message.author.bot) {
@@ -358,6 +369,10 @@ client.on('message', (message) => {
         return;
       }
     }
+
+      if (wordList.includes('wished')) {
+         claim();
+      }
 
     if (message.content.startsWith('%')) {
       message.channel.send('Ha! You fool! Did you mean ' + message.content.replace('%', '$') + '?');
